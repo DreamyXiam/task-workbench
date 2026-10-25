@@ -1,0 +1,248 @@
+{
+  "executedAt": "2026-10-25T11:16:15+08:00",
+  "command": "mvn -o -s tooling/compatibility/cache-settings.xml -Dmaven.repo.local=<project>/.cache/m2 -f backend/pom.xml -B -ntp package",
+  "exitCode": 0,
+  "java": "Corretto21.0.13+10",
+  "boot": "3.5.16",
+  "mybatisStarter": "3.0.5",
+  "flyway": "11.20.3",
+  "database": "H2 synthetic only; V1-V9",
+  "totals": {
+    "tests": 101,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "suites": [
+    {
+      "class": "cn.workbench.AttachmentSafetyTest",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "0.112",
+      "cases": [
+        "normalArchiveIsValidatedWithoutExtraction",
+        "archiveDecompressionBombIsRejected",
+        "modernOfficeWhitelistRemainsPending",
+        "archiveTraversalAndScriptsAreRejected",
+        "confirmedLegacyOfficeTypesRemainAvailable"
+      ]
+    },
+    {
+      "class": "cn.workbench.CalendarPolicyTest",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "0.04",
+      "cases": [
+        "overlappingLeaveIntervalsAreRemovedOnce",
+        "calendarCrossesMonthsAndSkipsHolidayButIncludesMakeupDay",
+        "noDeadlineSamplesRemainNotApplicable",
+        "candidateWeightsAreNotFormalWeights",
+        "unrelatedDepartmentLeaveDoesNotExcludeTask",
+        "deadlinesInsideLeaveAreExplicitlyExcluded"
+      ]
+    },
+    {
+      "class": "cn.workbench.CalendarSimulationTest",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "7.496",
+      "cases": [
+        "foreignDepartmentLeaveIsRejected",
+        "simulationNeverCreatesFormalRunsAndOldResultSurvivesTaskChanges",
+        "candidateCalendarsAndSimulationsHaveIndependentAppendOnlyStorage",
+        "calendarVersionRequiresExpectedVersionAndScopedAdmin",
+        "headsCannotSimulateOtherDepartmentAndAdminCannotReadBusinessResults",
+        "candidateTemplateCannotPublishAndClassificationVersionsConflict"
+      ]
+    },
+    {
+      "class": "cn.workbench.DomainTest",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "0.055",
+      "cases": [
+        "csvFormulaInjectionIsEscaped",
+        "invalidStateAndStaleVersionFail",
+        "rawGoldenMetrics",
+        "scopeDoesNotMergeCompanies",
+        "totpRfcVectorAndReplayWindow",
+        "goldenKpiAndMissingDenominator"
+      ]
+    },
+    {
+      "class": "cn.workbench.ExportControllerTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "2.441",
+      "cases": [
+        "employeeCannotExportEvenWithFreshTotp",
+        "exportRequiresFreshTotp",
+        "xlsxIsActualWorkbookAndRepeatedRequestIsRateLimited"
+      ]
+    },
+    {
+      "class": "cn.workbench.ExportFormatsTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "4.402",
+      "cases": [
+        "excessiveExportsFailExplicitly",
+        "pdfContainsSameSnapshotNumbersAndWatermarkOnEveryPage",
+        "xlsxStoresFormulaLikeValuesAsInlineTextAndEscapesXml"
+      ]
+    },
+    {
+      "class": "cn.workbench.HttpSecurityTest",
+      "tests": 10,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "6.044",
+      "cases": [
+        "scopedAdminCannotResetSharedAccount",
+        "attachmentTraversalAndQuarantineAreEnforced",
+        "fiveLoginFailuresLockAccountAcrossSessions",
+        "disabledUserLosesExistingSession",
+        "scopedAdminCannotGrantGlobalLeader",
+        "bootstrapHasSeparateScopesAndRealForeignKeys",
+        "realIdorAndUnassignedEmployeeReadAreRejected",
+        "employeeCannotGuessForeignTaskOrBypassPasswordChange",
+        "csrfRejectsForgedLoginBeforeMutation",
+        "unauthenticatedCannotReadTasks"
+      ]
+    },
+    {
+      "class": "cn.workbench.MatchingEngineTest$FeedbackApi",
+      "tests": 21,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "2.969",
+      "cases": [
+        "longestFixedPhraseBeatsGeneralKeywordRegardlessOfWeight",
+        "collaboratorOnlyRuleCannotAppointAHost",
+        "deterministicTiesNeedHumanConfirmationAndDoNotDependOnInputOrder",
+        "sameTermCanSuggestMultipleDepartmentsWithinTheSameScope",
+        "foreignCompanyRulesAndForeignDepartmentsNeverBecomeCandidates",
+        "negatedOccurrencesDoNotScoreAndAffirmativeOccurrencesStillCan",
+        "snapshotsDoNotChangeWhenSourceConfigurationChanges",
+        "companyOverrideSuppressesGlobalRuleIncludingDisabledOverride",
+        "explicitNegativeKeywordsSuppressTheRuleAndRemainExplainable",
+        "exactFieldFixedRuleWinsAndExplainsRuleVersion",
+        "noMatchKeepsManualFallbackAndNeverInventsADepartment",
+        "normalizesWidthCaseAndWhitespaceBeforeMatching",
+        "englishNegationRequiresAWordBoundary",
+        "fixedCollaboratorRoleCannotBeOverriddenByAnOrdinaryHostTag",
+        "repeatedTermsScoreOnceAndAsciiWordsNeedBoundaries",
+        "collaborationOptionsAreLeaderOnlyAndExposeOnlyFourApprovedFields",
+        "onlyExplicitGlobalAdministratorCanCreateGlobalRules",
+        "feedbackRejectsForeignScopeAndMismatchedInput",
+        "feedbackUsesStoredSuggestionAndActualAssignmentWithoutPublishingRules",
+        "suggestionSnapshotSurvivesRuleChangesAndAdoptionIsNotAccuracy",
+        "statisticsEnforceCompanyAndTimeWindow"
+      ]
+    },
+    {
+      "class": "cn.workbench.MatchingEngineTest",
+      "tests": 0,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "3.0",
+      "cases": []
+    },
+    {
+      "class": "cn.workbench.OrganizationChangesTest",
+      "tests": 14,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "2.71",
+      "cases": [
+        "delegatedContextCannotReplayAnotherAuthorizationContext",
+        "appointmentUpdateNeedsFreshTotpAndPreservesOtherScopes",
+        "delegatedExecutionAuditsActualPersonAndGrant",
+        "delegatedAssignmentCannotSilentlyTransferWithoutTransferPermission",
+        "appointmentDefaultsRemainActiveAndEffective",
+        "transferKeepsOriginalSnapshotAndWritesImmutableHistory",
+        "expiredGrantOrUnavailableDelegatorCannotBeUsed",
+        "expiredForeignScopeCannotBypassAccountResetOrDisable",
+        "handoverBatchRejectsForeignDepartmentWithoutEffects",
+        "futureDisabledAndForeignOrganizationAppointmentsAreNotEffective",
+        "expiredAndOnLeaveAppointmentsAreNotEffective",
+        "delegationRequiresSameDepartmentAndCannotGrantUnknownPermissions",
+        "delegationIsExplicitNarrowAndRevocationIsImmediate",
+        "scopedAdministratorCannotChangeSharedAccountEvenIfForeignAppointmentExpired"
+      ]
+    },
+    {
+      "class": "cn.workbench.ReviewRegressionTest",
+      "tests": 9,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "2.6",
+      "cases": [
+        "malformedGlobalRoleDoesNotGrantAnyCompany",
+        "unassignedEmployeeNeverReceivesTaskMetadata",
+        "kpiDoesNotChargeOtherDepartmentForParentLateness",
+        "regularSchedulerCatchesMissedMonthlySettlementOnce",
+        "departmentRunResponseNeverContainsForeignTaskSnapshot",
+        "concurrentAuditReadsKeepOneChain",
+        "globalTagsUseNullableRelationalScope",
+        "taskLevelAttachmentStillRequiresDepartmentPermission",
+        "reworkRateUsesAcceptedTasksAsItsDenominator"
+      ]
+    },
+    {
+      "class": "cn.workbench.WecomDeliveryTest",
+      "tests": 12,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "2.338",
+      "cases": [
+        "activeOrRolledBackBusinessTransactionCannotDeliverExternally",
+        "repeatedFailuresBecomeTerminalWithoutRepeatingStation",
+        "foreignSecretReferenceCannotResolveAnotherCompanyKey",
+        "responseRequiresHttpSuccessAndExplicitZeroVendorCode",
+        "excessiveResponseCancelsSubscriptionWithoutBufferingIt",
+        "retryAndRestartPreserveIndependentStationDeliveryAndSanitizeErrors",
+        "stationDeliveryHasDurableStatusAndRestartIsIdempotent",
+        "disabledChannelNeverLooksUpKeyOrCallsTransport",
+        "expiredClaimRestartsAndOldClaimCannotAcknowledgeNewDelivery",
+        "enabledCompanyChannelSendsOnlyAfterCommitAndDoesNotRepeat",
+        "disablingPendingChannelSkipsRetryWithoutAnotherExternalEffect",
+        "untrustedWebhookEndpointsAreRejectedBeforeAnyHttpClientIsCreated"
+      ]
+    },
+    {
+      "class": "cn.workbench.WorkflowTest",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "2.424",
+      "cases": [
+        "lifecycleCrossCompanyReworkAndAcceptanceAreTransactional",
+        "gapAcceptanceDoesNotInventMissingSubmission",
+        "kpiSnapshotIsImmutableAndZeroDenominatorIsNotScored",
+        "concurrentVersionedWritesOnlyOneWins",
+        "idempotentReplayDoesNotDuplicateTaskOrOutbox",
+        "withdrawalBeforeAcceptanceInvalidatesHostSummary"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,50 @@
+spring:
+  application:
+    name: task-workbench
+  datasource:
+    url: ${TASK_DB_URL:jdbc:mysql://localhost:3306/task_workbench?connectionTimeZone=Asia/Shanghai&forceConnectionTimeZoneToSession=true}
+    username: ${TASK_DB_USER:task_app}
+    password: ${TASK_DB_PASSWORD:}
+  flyway:
+    enabled: ${TASK_FLYWAY_ENABLED:false}
+  jackson:
+    time-zone: Asia/Shanghai
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 11MB
+server:
+  address: ${TASK_BIND_ADDRESS:127.0.0.1}
+  port: ${TASK_PORT:8080}
+  error:
+    include-message: never
+  servlet:
+    session:
+      timeout: 8h
+      cookie:
+        name: TASK_SESSION
+        http-only: true
+        secure: ${TASK_SECURE_COOKIE:true}
+        same-site: strict
+mybatis:
+  configuration:
+    map-underscore-to-camel-case: true
+    call-setters-on-nulls: true
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+task:
+  totp-key: ${TASK_TOTP_ENCRYPTION_KEY:}
+  export-font: ${TASK_EXPORT_FONT:}
+  storage-root: ${TASK_STORAGE_ROOT:./var/attachments}
+  bootstrap-password: ${TASK_BOOTSTRAP_PASSWORD:}
+  scanner-command: ${TASK_SCANNER_COMMAND:}
+  jobs-enabled: ${TASK_JOBS_ENABLED:true}
+logging:
+  level:
+    cn.workbench: INFO

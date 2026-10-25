@@ -1,0 +1,3 @@
+package cn.workbench;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingClass;import org.springframework.web.bind.annotation.*;import org.springframework.jdbc.core.JdbcTemplate;import org.springframework.http.ResponseEntity;
+@RestController @ConditionalOnMissingClass("org.springframework.boot.actuate.health.HealthEndpoint") public class OfflineHealthController {final JdbcTemplate jdbc;public OfflineHealthController(JdbcTemplate j){jdbc=j;}@GetMapping("/actuator/health") ResponseEntity<?> health(){try{jdbc.queryForObject("SELECT 1",Integer.class);return ResponseEntity.ok(java.util.Map.of("status","UP"));}catch(Exception e){return ResponseEntity.status(503).body(java.util.Map.of("status","DOWN"));}}}

@@ -1,0 +1,12 @@
+spring:
+  datasource:
+    url: jdbc:h2:file:./var/demo;MODE=MySQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1
+    username: sa
+    password: ${TASK_DB_PASSWORD:}
+  flyway:
+    enabled: true
+server:
+  servlet:
+    session:
+      cookie:
+        secure: false

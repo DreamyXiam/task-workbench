@@ -1,12 +1,7 @@
-# V1.5 full build ledger
-User authorization: 开始全量构建项目, 2026-10-24. Replaces earlier task001-only restriction.
-Spec: docs/requirements/v15-tasks.md. Plan: docs/superpowers/plans/2026-10-24-v15-build.md.
-Workspace: D:/TASK/task-workbench, branch codex/v1.5-build, new isolated project; no production access.
-Ruling: existing approved design is the source, no repeat design approval. Keep unresolved policy ADR defaults. Cost if incorrect: rework in this new folder only.
-Ruling: external dependency DNS failure blocks formal CDEX002 acceptance; continue reviewable source work on an unmerged branch and explicit cached offline verification. Never freeze legacy versions or claim release. Cost: formal compatibility and deployment still require the approved candidates.
-Tasks:
-- Backend worker owns backend and backend-report.
-- Frontend worker owns frontend and frontend-report.
-- Operations worker owns deploy/CI/docs except requirements,plan,audit,ADR index and other reports.
-- Root owns integration, candidate descriptors, final verification and review.
-Preflight: contract fixed in plan; mutable files disjoint. Backend remains authority for route/JSON contracts; frontend changes adapt to actual reviewed contract.
+# Build progress and pause instruction
+
+Updated2026-10-25. User authorized full project construction after the initial CDEX-001-only audit, then instructed: finish the current part and pause. Current part is appointments/delegation/handover, calendar/complexity simulation, actual XLSX/PDF export, their frontend integration and verification. No further development task starts after this checkpoint.
+
+Workspace: D:/TASK/task-workbench; branch codex/v1.5-build. New isolated local project. No production service/database touched, no external push/merge/publish.
+
+Canonical requirements: docs/requirements/v15-tasks.md. Current implementation evidence: build-report.md plus backend/frontend/matching/wecom/calendar/organization reports. Acceptance matrix preserves all42requirements without claiming their production acceptance. Earlier connectivity failures were overcome for the initial candidate verification; the current restricted shell again blocks localhost and clean npm ci hit Windows EPERM. These are recorded as specific unverified checks, not as blanket build success or incompatible dependencies.

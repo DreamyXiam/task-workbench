@@ -1,0 +1,60 @@
+{
+  "checks": [
+    {
+      "name": "Anonymous protected endpoint returns 401",
+      "result": "PASS"
+    },
+    {
+      "name": "Missing CSRF login rejected",
+      "result": "PASS"
+    },
+    {
+      "name": "Initial password rotation and mandatory leader TOTP",
+      "result": "PASS"
+    },
+    {
+      "name": "Company daily task number",
+      "result": "PASS"
+    },
+    {
+      "name": "Idempotent task creation",
+      "result": "PASS"
+    },
+    {
+      "name": "Key reuse with different payload rejected",
+      "result": "PASS"
+    },
+    {
+      "name": "Cross-company guessed task ID rejected",
+      "result": "PASS"
+    },
+    {
+      "name": "Withdrawal allowed before final acceptance and invalidates summary",
+      "result": "PASS"
+    },
+    {
+      "name": "Rework returns canonical REWORK state",
+      "result": "PASS"
+    },
+    {
+      "name": "Cannot accept rework without fresh host summary",
+      "result": "PASS"
+    },
+    {
+      "name": "Completed task cannot be withdrawn",
+      "result": "PASS"
+    },
+    {
+      "name": "Create → receive → submit → summarize → rework → re-summarize → accept",
+      "result": "PASS"
+    },
+    {
+      "name": "Logout revokes prior session",
+      "result": "PASS"
+    }
+  ],
+  "executedAt": "2026-10-24",
+  "database": "MySQL8.4.13 synthetic",
+  "schema": "V1-V5 intermediate build",
+  "isCurrentIncrementProof": false
+}

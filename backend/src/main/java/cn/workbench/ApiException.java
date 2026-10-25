@@ -1,0 +1,2 @@
+package cn.workbench;
+public class ApiException extends RuntimeException { public final int status;public final String code;public ApiException(int status,String code,String message){super(message);this.status=status;this.code=code;}public static ApiException denied(){return new ApiException(403,"FORBIDDEN","无权执行此操作");} public static ApiException conflict(){return new ApiException(409,"CONFLICT","状态已改变，请刷新后重试");} }

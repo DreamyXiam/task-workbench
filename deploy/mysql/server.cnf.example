@@ -1,0 +1,14 @@
+[mysqld]
+# Review exact MySQL 8.4 security patch before release.
+require_secure_transport=ON
+local_infile=OFF
+log_bin=mysql-bin
+binlog_format=ROW
+binlog_row_image=FULL
+sync_binlog=1
+innodb_flush_log_at_trx_commit=1
+# Retention is an operational example, pending ADR-005/006 approval.
+binlog_expire_logs_seconds=604800
+server_id=1
+# Bind to the private interface; firewall to app/migration/backup hosts.
+bind_address=127.0.0.1

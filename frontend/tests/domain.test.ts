@@ -1,0 +1,27 @@
+import { describe, expect, it, beforeEach } from 'vitest'
+import { allowed, validateAssignment, kpiDisplayScore, canReadKpiScores, reworkDepartmentOptions } from '../src/domain'
+import { ApiError, api, transport, resetSessionBoundary, sessionEpoch, onSessionExpired } from '../src/api'
+import { createPinia, setActivePinia } from 'pinia'
+import { useAuth } from '../src/stores/auth'
+const envelope = (data: unknown) => ({ data: { code:'OK', data, message:'', traceId:'t1' }, status:200, statusText:'OK', headers:{}, config: {} as any })
+beforeEach(() => { setActivePinia(createPinia()); resetSessionBoundary() })
+describe('authorization display policy', () => {
+  it('does not infer permission from a role or a missing action list', () => { expect(allowed({role:'ADMIN'}, 'accept')).toBe(false); expect(allowed({allowedActions:['accept']},'cancel')).toBe(false); expect(allowed({allowedActions:['accept']},'accept')).toBe(true) })
+  it('requires one host, zero to two distinct collaborators excluding host', () => { expect(validateAssignment('',[])).toBeTruthy(); expect(validateAssignment('a',['b','c','d'])).toBeTruthy(); expect(validateAssignment('a',['a'])).toBeTruthy(); expect(validateAssignment('a',['b','b'])).toBeTruthy(); expect(validateAssignment('a',['b','c'])).toBe('') })
+})
+describe('session boundary and transport', () => {
+  it('rejects an old request after changing context', async () => { let finish!: (v:any)=>void; transport.defaults.adapter = () => new Promise(r=>{finish=r}); const p=api.get('/tasks'); await Promise.resolve(); resetSessionBoundary(); finish(envelope({items:[{id:'old'}]})); await expect(p).rejects.toMatchObject({code:'STALE_SESSION'}) })
+  it('sends cookies, CSRF and a fresh idempotency key for business writes', async () => { const seen:any[]=[]; transport.defaults.adapter=async config=>{ seen.push(config); return {...envelope(config.url==='/auth/csrf'?{token:'token',headerName:'X-CSRF-TOKEN'}:{}),config} }; await api.post('/tasks',{title:'a'}); await api.post('/tasks',{title:'b'}); const writes=seen.filter(x=>x.url==='/tasks'); expect(writes[0].withCredentials).toBe(true); expect(writes[0].headers.get('X-CSRF-TOKEN')).toBe('token'); expect(writes[0].headers.get('Idempotency-Key')).toBeTruthy(); expect(writes[0].headers.get('Idempotency-Key')).not.toBe(writes[1].headers.get('Idempotency-Key')) })
+  it('preserves error trace and conflict semantics', async () => { transport.defaults.adapter=async config=>config.url==='/auth/csrf'?{...envelope({token:'t',headerName:'X-CSRF-TOKEN'}),config}:({...envelope(null),config,status:409,data:{code:'VERSION_CONFLICT',message:'请刷新',traceId:'conflict-1'}}); await expect(api.post('/auth/login',{})).rejects.toMatchObject({status:409,traceId:'conflict-1'}) })
+  it('clears identity on expiration and advances session boundary', () => { const auth=useAuth(); auth.me={id:'u1',name:'姓名',role:'EMPLOYEE',accountSuffix:'0001',companyId:'c1',deptId:'d1',scopes:[]}; const epoch=sessionEpoch(); auth.clear(); expect(auth.me).toBeNull(); expect(sessionEpoch()).toBeGreaterThan(epoch) })
+  it('keeps login closed during forced password or TOTP steps', () => { const auth=useAuth(); auth.me={id:'u',name:'名',role:'ADMIN',accountSuffix:'01',companyId:'c',deptId:'d',scopes:[],mustChangePassword:true,totpRequired:true,totpVerified:false}; expect(auth.ready).toBe(false); auth.me.mustChangePassword=false; expect(auth.ready).toBe(false); auth.me.totpVerified=true; expect(auth.ready).toBe(true) })
+  it('expires the active store when the server returns 401', async () => { const auth=useAuth(); onSessionExpired(()=>auth.clear());auth.me={id:'u',name:'名',role:'EMPLOYEE',accountSuffix:'01',companyId:'c',scopes:[]};transport.defaults.adapter=async config=>({...envelope(null),config,status:401,data:{code:'UNAUTHENTICATED',message:'会话已过期',traceId:'expired-1'}});await expect(api.get('/tasks')).rejects.toMatchObject({status:401,traceId:'expired-1'});expect(auth.me).toBeNull() })
+  it('ignores an old 401 without clearing a newly established context', async () => {const auth=useAuth();onSessionExpired(()=>auth.clear());let finish!: (v:any)=>void;transport.defaults.adapter=()=>new Promise(r=>{finish=r});const p=api.get('/tasks');await Promise.resolve();resetSessionBoundary();auth.me={id:'new',name:'新岗位',role:'EMPLOYEE',accountSuffix:'01',companyId:'b',scopes:[]};finish({...envelope(null),status:401,data:{code:'UNAUTHENTICATED',message:'旧会话'}});await expect(p).rejects.toMatchObject({code:'STALE_SESSION'});expect(auth.me?.id).toBe('new')})
+  it('formats structured errors without exposing stack objects', () => { expect(new ApiError(403,'FORBIDDEN','无权限','a').message).toContain('无权限') })
+})
+
+describe('real KPI and cross-company action contracts',()=>{
+ it('displays the server final score, including zero and N/A',()=>{expect(kpiDisplayScore({rawScore:85.83,adjustedScore:90,finalScore:90})).toBe(90);expect(kpiDisplayScore({rawScore:0,finalScore:0})).toBe(0);expect(kpiDisplayScore({rawScore:null})).toBeNull()})
+ it('keeps admin calculation independent of forbidden business score reads',()=>{expect(canReadKpiScores('ADMIN')).toBe(false);expect(canReadKpiScores('DEPT_HEAD')).toBe(true);expect(canReadKpiScores('EMPLOYEE')).toBe(false)})
+ it('offers the accepted foreign collaborator for targeted rework',()=>{expect(reworkDepartmentOptions({subTasks:[{deptId:3,deptName:'主办'},{deptId:5,deptName:'跨公司协办'},{deptId:5}]}).map(d=>d.id)).toEqual([3,5])})
+})

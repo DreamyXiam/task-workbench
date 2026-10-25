@@ -1,0 +1,9 @@
+{
+  "executedAt": "2026-10-25",
+  "result": "PASS",
+  "xlsx": "Loaded with independent openpyxl; formula-leading cells are strings;85.83 unchanged",
+  "pdf": "Loaded with independent pypdf; searchable Chinese,85.83,N/A,actor/time watermark; first page rendered with PDFBox and visually inspected",
+  "font": "Windows SimHei locally installed; not redistributed",
+  "data": "Synthetic only",
+  "note": "No screenshot or proprietary font included"
+}

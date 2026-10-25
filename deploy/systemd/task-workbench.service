@@ -1,0 +1,40 @@
+[Unit]
+Description=Task Workbench V1.5
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=120
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=task-workbench
+Group=task-workbench
+WorkingDirectory=/opt/task-workbench/current
+EnvironmentFile=/etc/task-workbench/runtime.env
+ExecStartPre=/opt/task-workbench/current/scripts/validate-prod-env.sh
+ExecStart=/usr/bin/java -XX:MaxRAMPercentage=65 -Duser.timezone=Asia/Shanghai -jar /opt/task-workbench/current/backend/task-workbench.jar
+Restart=on-failure
+RestartSec=10
+TimeoutStopSec=90
+KillSignal=SIGTERM
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/task-workbench
+StateDirectory=task-workbench
+StateDirectoryMode=0700
+CapabilityBoundingSet=
+RestrictSUIDSGID=true
+LockPersonality=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+LimitNOFILE=8192
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

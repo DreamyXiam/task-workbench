@@ -1,3 +1,5 @@
+>2026-10-25 implementation update: the following CDEX-001 register preserves the original audit state. The user later authorized full construction in the isolated `task-workbench` repository. [ADR-001](ADR-001-tech-stack.md) now selects the locally tested3.5 baseline; [ADR-003](ADR-003-complexity-calendar.md) documents simulation-only candidates. Other pending business policies retain V1.4 defaults. The latest checkpoint is [build-report](../implementation/build-report.md); no production release is approved.
+
 # 任务工作台 V1.5｜架构决策记录索引
 
 - 建立日期：2026-10-24（Asia/Shanghai）。

@@ -1,0 +1,13 @@
+<script setup lang="ts">
+import { onMounted,ref } from 'vue'
+import { api,errorText } from '../api'
+import { display,listItems } from '../domain'
+import type { Row } from '../domain'
+import { useLoad } from '../composables'
+import PageState from '../components/PageState.vue'
+const items=ref<Row[]>([]),{loading,error,run}=useLoad(),from=ref(''),to=ref(''),operationError=ref(''),exporting=ref(false),exportFormat=ref('xlsx')
+function load(){run(()=>api.get('/stats/dept',{from:from.value||undefined,to:to.value||undefined}),v=>items.value=listItems(v))}
+async function exportFile(){exporting.value=true;operationError.value='';try{const params=new URLSearchParams({format:exportFormat.value});if(from.value)params.set('from',from.value);if(to.value)params.set('to',to.value);await api.download('/stats/export?'+params,`任务统计.${exportFormat.value}`)}catch(e){operationError.value=errorText(e)}finally{exporting.value=false}}
+onMounted(load)
+</script>
+<template><section class="page-heading"><div><p class="eyebrow">ORGANIZATION INSIGHTS</p><h1>统计分析</h1><p class="muted">观察组织任务完成情况，导出当前授权范围内的数据。</p></div><div class="action-strip"><el-select v-model="exportFormat" aria-label="导出格式" style="width:120px"><el-option label="Excel" value="xlsx"/><el-option label="PDF" value="pdf"/><el-option label="CSV" value="csv"/></el-select><el-button type="primary" plain :loading="exporting" @click="exportFile">导出统计</el-button></div></section><el-alert v-if="operationError" :title="operationError" type="error" :closable="false"/><section class="panel"><div class="filter-bar"><el-date-picker v-model="from" type="date" value-format="YYYY-MM-DD" placeholder="开始日期" aria-label="统计开始日期"/><el-date-picker v-model="to" type="date" value-format="YYYY-MM-DD" placeholder="结束日期" aria-label="统计结束日期"/><el-button type="primary" @click="load">查询</el-button></div><PageState :loading="loading" :error="error" :empty="!items.length" @retry="load"><div class="department-stats"><article v-for="d in items" :key="d.deptId||d.id" class="dept-stat-card"><div class="row-between"><h2>{{ d.deptName||d.name||d.deptId }}</h2><span class="muted">部门任务</span></div><div class="dept-stat-values"><div><strong>{{ d.total??'—' }}</strong><span>任务总数</span></div><div><strong>{{ d.completed??'—' }}</strong><span>已完成</span></div><div><strong class="priority-high">{{ d.overdue??'—' }}</strong><span>逾期</span></div></div><el-progress v-if="d.completionRate!=null" :percentage="Math.min(100,Math.max(0,Number(d.completionRate)))" :stroke-width="7"/><p class="muted">进行中 {{ display(d.inProgress) }} · 待验收 {{ display(d.pendingAcceptance) }}</p></article></div></PageState><p class="scope-note">逾期独立记录；调整截止日期不覆盖已发生的历史逾期事实。统计口径以服务端为准。</p></section></template>

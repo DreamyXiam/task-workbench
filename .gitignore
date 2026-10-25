@@ -1,0 +1,23 @@
+# Local secrets and generated artifacts
+.env
+.env.*
+!.env.example
+*.local
+*.pem
+*.key
+*.p12
+*.age
+*.sql.gz
+*.log
+backend/target/
+frontend/node_modules/
+frontend/dist/
+coverage/
+artifacts/
+.task-storage/
+.idea/
+.vscode/
+.cache/
+tooling/compatibility/local-proxy-settings.xml
+var/
+frontend/tests/results/
