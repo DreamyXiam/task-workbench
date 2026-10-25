@@ -8,20 +8,20 @@ States: Pending / Partial evidence / Blocked / Verified (named environment and r
 |---|---|---|---|---|---|
 | CDEX-001 | P0 | Repository and V1.4 mapping | integration | Partial evidence | [Original audit](../audit/v14-gap-analysis.md); provenance/reconciliation remains pending |
 | CDEX-002 | P0 | Candidate compatibility PoC | integration | Partial evidence | [ADR-001](../adr/ADR-001-tech-stack.md): both candidates attempted; final release gates remain |
-| CDEX-003 | P0 | Build and CI gates | operations + integration | Partial evidence | [operations-report.md](../implementation/operations-report.md) + requirement proof |
+| CDEX-003 | P0 | Build and CI gates | operations + integration | Partial evidence | [operations-report.md](../implementation/operations-report.md); [frontend clean-build evidence](evidence/frontend-clean-build.json) |
 | CDEX-004 | P0 | API contract/errors | backend | Partial evidence | [backend-report.md](../implementation/backend-report.md); [checkpoint](../implementation/build-report.md) |
-| CDEX-005 | P0 | Original schema migration | backend | Partial evidence | [backend-report.md](../implementation/backend-report.md); [checkpoint](../implementation/build-report.md) |
+| CDEX-005 | P0 | Original schema migration | backend | Partial evidence | [backend-report.md](../implementation/backend-report.md); [MySQL V1-V9 engine evidence](evidence/mysql-v9-engine.json) |
 | CDEX-006 | P0 | Missing business entities | backend | Partial evidence | [backend-report.md](../implementation/backend-report.md); [checkpoint](../implementation/build-report.md) |
 | CDEX-007 | P0 | Role and company membership | backend | Partial evidence | [backend-report.md](../implementation/backend-report.md); [checkpoint](../implementation/build-report.md) |
 | CDEX-008 | P0 | Object authorization and isolation | backend | Partial evidence | [backend-report.md](../implementation/backend-report.md); [checkpoint](../implementation/build-report.md) |
 | CDEX-009 | P1 | Delegation and handover | backend | Partial evidence | [organization-changes-report.md](../implementation/organization-changes-report.md); [checkpoint](../implementation/build-report.md) |
-| CDEX-010 | P0 | Constraints/indexes/versions | backend | Partial evidence | [backend-report.md](../implementation/backend-report.md); [checkpoint](../implementation/build-report.md) |
+| CDEX-010 | P0 | Constraints/indexes/versions | backend | Partial evidence | [backend-report.md](../implementation/backend-report.md); [MySQL V1-V9 engine evidence](evidence/mysql-v9-engine.json) |
 | CDEX-011 | P0 | Session/CSRF/revocation | backend | Partial evidence | [backend-report.md](../implementation/backend-report.md); [checkpoint](../implementation/build-report.md) |
 | CDEX-012 | P0 | TOTP and step-up | backend | Partial evidence | [backend-report.md](../implementation/backend-report.md); [checkpoint](../implementation/build-report.md) |
 | CDEX-013 | P0 | HTTPS and security headers | operations + integration | Partial evidence | [operations-report.md](../implementation/operations-report.md); [checkpoint](../implementation/build-report.md) |
 | CDEX-014 | P0 | Attachments and safe export | backend | Partial evidence | [backend-report.md](../implementation/backend-report.md); [checkpoint](../implementation/build-report.md) |
 | CDEX-015 | P0 | Audit/keys/retention | backend | Partial evidence | [backend-report.md](../implementation/backend-report.md); [checkpoint](../implementation/build-report.md) |
-| CDEX-016 | P0 | Security regression gates | operations + integration | Partial evidence | [operations-report.md](../implementation/operations-report.md); [checkpoint](../implementation/build-report.md) |
+| CDEX-016 | P0 | Security regression gates | operations + integration | Partial evidence | [operations-report.md](../implementation/operations-report.md); [frontend clean-build evidence](evidence/frontend-clean-build.json); backend/current online scans pending |
 | CDEX-017 | P0 | Task/subtask state machine | backend | Partial evidence | [backend-report.md](../implementation/backend-report.md); [checkpoint](../implementation/build-report.md) |
 | CDEX-018 | P0 | Deadline history and extensions | backend | Partial evidence | [backend-report.md](../implementation/backend-report.md); [checkpoint](../implementation/build-report.md) |
 | CDEX-019 | P0 | Idempotency and concurrency | backend | Partial evidence | [backend-report.md](../implementation/backend-report.md); [checkpoint](../implementation/build-report.md) |
@@ -36,7 +36,7 @@ States: Pending / Partial evidence / Blocked / Verified (named environment and r
 | CDEX-028 | P0 | Monthly immutable snapshots | backend | Partial evidence | [backend-report.md](../implementation/backend-report.md); [checkpoint](../implementation/build-report.md) |
 | CDEX-029 | P0 | Appeals/adjustment/lock | backend | Partial evidence | [backend-report.md](../implementation/backend-report.md); [checkpoint](../implementation/build-report.md) |
 | CDEX-030 | P1 | Scorecards/reports/export | backend | Partial evidence | [backend-report.md](../implementation/backend-report.md); [checkpoint](../implementation/build-report.md) |
-| CDEX-031 | P0 | Vue/TS/Pinia tokens | frontend | Partial evidence | [frontend-report.md](../implementation/frontend-report.md); [checkpoint](../implementation/build-report.md) |
+| CDEX-031 | P0 | Vue/TS/Pinia tokens | frontend | Partial evidence | [frontend-report.md](../implementation/frontend-report.md); [frontend clean-build evidence](evidence/frontend-clean-build.json) |
 | CDEX-032 | P0 | Login/TOTP/watermark | frontend | Partial evidence | [frontend-report.md](../implementation/frontend-report.md); [checkpoint](../implementation/build-report.md) |
 | CDEX-033 | P0 | Role dashboard/list/notifications | frontend | Partial evidence | [frontend-report.md](../implementation/frontend-report.md); [checkpoint](../implementation/build-report.md) |
 | CDEX-034 | P0 | Create/matching UI | frontend | Partial evidence | [frontend-report.md](../implementation/frontend-report.md); [checkpoint](../implementation/build-report.md) |
@@ -98,4 +98,4 @@ Local operations disposition: CDEX-003/013/016/038/039/040/042 have partial evid
 
 The user requested that the current appointments/delegation/handover, calendar simulation and actual Excel/PDF export part be completed and then paused. Dedicated reports describe implementation and test scope. No new production trial, deployment, scan, load or recovery task is authorized by this checkpoint note.
 
-Earlier real MySQL8.4.13 V1-V5 migration +13HTTP checks and35synthetic API browser viewport checks passed on2026-10-24. New V8/V9 and45browser combinations must not inherit those results. On2026-10-25 localhost sockets were denied and Chromium failed at startup0xC0000022. The current checkpoint records H2 integration and frontend tests/build, with those live-environment limits retained. Clean npm ci failed Windows mkdir EPERM;245packages were independently SHA512-verified/recovered from existing content cache, not a successful clean-install claim.
+Earlier real MySQL8.4.13 V1-V5 migration +13HTTP checks and35synthetic API browser viewport checks passed on2026-10-24. New V8/V9 and45browser combinations must not inherit those results. On2026-10-25 the exact V1-V9 SQL files subsequently executed successfully on a fresh isolated MySQL8.4.13 engine, and a new-directory npm ci/typecheck/lint/20-test/build gate passed. These are partial evidence only: localhost client channels remained denied, so Flyway/JDBC/HTTP did not run against that database; Vite loopback and Edge debugging pipes also remained blocked, so the45-case browser fixture did not run. Frontend offline audit/SBOM evidence exists, while current backend scanning/SBOM and all release-environment gates remain pending.

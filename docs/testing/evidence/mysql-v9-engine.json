@@ -1,0 +1,48 @@
+{
+  "recordedAt": "2026-10-25T03:38:00Z",
+  "scope": "Local isolated MySQL 8.4 engine compatibility evidence for the exact V1-V9 SQL migration files",
+  "status": "PARTIAL_EVIDENCE",
+  "releaseAcceptance": false,
+  "database": {
+    "product": "MySQL Community Server - GPL",
+    "version": "8.4.13",
+    "dataProfile": "New empty synthetic database; no real or production data",
+    "networking": "Disabled while executing the engine evidence run"
+  },
+  "execution": {
+    "method": "mysqld init-file executed the unmodified V1-V9 migration SQL in numeric version order",
+    "migrationFiles": [
+      "V1__foundation.sql",
+      "V2__relational_entities.sql",
+      "V3__security_counters_and_audit_anchor.sql",
+      "V4__atomic_business_number.sql",
+      "V5__scope_invariants_and_deadline_facts.sql",
+      "V6__wecom_delivery.sql",
+      "V7__global_matching_scope.sql",
+      "V8__appointments_delegation_and_handover.sql",
+      "V9__calendar_and_complexity_simulation.sql"
+    ],
+    "result": "PASS",
+    "marker": "MYSQL84_V1_V9_VERIFIED"
+  },
+  "verification": {
+    "tableCount": 40,
+    "v8V9TableCount": 6,
+    "v8V9Tables": [
+      "scope_delegation",
+      "task_handover",
+      "company_calendar_version",
+      "kpi_simulation_template",
+      "task_classification_version",
+      "calendar_simulation"
+    ],
+    "v8V9KeyColumnCount": 6,
+    "v8V9DistinctIndexCount": 5,
+    "checkConstraintCount": 14
+  },
+  "remainingGaps": [
+    "The current sandbox denied local TCP, named-pipe, and shared-memory client connections, so Flyway-over-JDBC and live HTTP flows were not rerun against this database.",
+    "Historical upgrade, least-privilege migration identity, concurrent transaction, EXPLAIN, backup, and PITR acceptance remain pending.",
+    "This evidence does not change any release row to Accepted."
+  ]
+}

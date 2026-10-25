@@ -1,0 +1,50 @@
+{
+  "recordedAt": "2026-10-25T03:36:30Z",
+  "scope": "Fresh frontend dependency installation and verification in a newly created writable directory",
+  "status": "PASS_WITH_REMAINING_BROWSER_GATE",
+  "releaseAcceptance": false,
+  "runtime": {
+    "node": "24.22.1",
+    "packageManager": "npm 11.19.1",
+    "mode": "offline cache with package-lock.json unchanged"
+  },
+  "results": {
+    "npmCi": {
+      "exitCode": 0,
+      "packagesAdded": 245
+    },
+    "typecheck": {
+      "exitCode": 0
+    },
+    "lint": {
+      "exitCode": 0
+    },
+    "vitest": {
+      "exitCode": 0,
+      "testFiles": 2,
+      "testsPassed": 20,
+      "testsFailed": 0
+    },
+    "viteBuild": {
+      "exitCode": 0,
+      "largestJavaScriptChunkKb": 1111.23,
+      "largestJavaScriptChunkGzipKb": 370.34,
+      "chunkSizeWarning": true
+    },
+    "npmAuditOffline": {
+      "exitCode": 0,
+      "totalVulnerabilities": 0
+    },
+    "npmCycloneDxSbom": {
+      "exitCode": 0,
+      "specVersion": "1.5",
+      "components": 244,
+      "dependencies": 245
+    }
+  },
+  "remainingGaps": [
+    "npm reported that esbuild's postinstall script was not pre-approved by the npm allowScripts policy; the installed optional binary nevertheless completed typecheck, tests, and production build.",
+    "The sandbox denied loopback access to the ready Vite server and Edge exited while establishing its debugging pipe, so the current 45-case browser fixture did not run.",
+    "A current online advisory refresh, real browser/device run, accessibility review, and bundle optimization remain pending."
+  ]
+}
