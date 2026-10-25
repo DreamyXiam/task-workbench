@@ -111,7 +111,7 @@ $backend = $null
 $frontend = $null
 try {
     foreach ($name in $overrides.Keys) { [Environment]::SetEnvironmentVariable($name,$overrides[$name],'Process') }
-    $backendArguments = @('-jar',$jar,'--spring.profiles.active=demo',"--spring.datasource.url=$h2Url",'--spring.datasource.username=sa','--spring.datasource.password=',"--server.port=$BackendPort",'--server.address=127.0.0.1','--server.servlet.session.cookie.secure=false',"--management.server.port=$BackendPort",'--management.server.address=127.0.0.1')
+    $backendArguments = @('-jar',$jar,'--spring.profiles.active=demo',"--spring.datasource.url=$h2Url",'--spring.datasource.username=sa','--spring.datasource.password=',"--server.port=$BackendPort",'--server.address=127.0.0.1','--server.servlet.session.cookie.secure=false')
     $backend = Start-Process -FilePath $JavaPath -ArgumentList ($backendArguments | ForEach-Object { ConvertTo-ProcessArgument $_ }) -WorkingDirectory $repo -WindowStyle Hidden -RedirectStandardOutput (Join-Path $logRoot 'backend.stdout.log') -RedirectStandardError (Join-Path $logRoot 'backend.stderr.log') -PassThru
     # Never pass bootstrap credentials or the TOTP encryption key to the frontend process.
     [Environment]::SetEnvironmentVariable('TASK_BOOTSTRAP_PASSWORD',$null,'Process')
