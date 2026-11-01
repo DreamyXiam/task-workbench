@@ -2,6 +2,12 @@
 
 [简体中文](README.zh-CN.md) | English
 
+## Open-source preview
+
+Task Workbench supports department-based task assignment, cross-company collaboration, delivery review and auditable KPI snapshots. It is intended for teams evaluating a self-hosted organizational workbench. This is a development preview; production acceptance remains pending.
+
+Original project code is licensed under [GNU AGPL v3.0 only](LICENSE) (`AGPL-3.0-only`). Third-party components retain their own licenses; dependency license review is still pending. See [contributing](CONTRIBUTING.md), [security reporting](SECURITY.md), and the [public-release checklist](docs/release/open-source-readiness.md). No public release or production support is implied by this license.
+
 A source project for the task lifecycle, scoped Session/CSRF security, immutable KPI assessment and a Vue3/TypeScript workbench. This working tree is a reviewable implementation; it is **not yet approved for production**. Check [acceptance](docs/testing/acceptance-matrix.md), [implementation evidence](docs/implementation/) and [release gates](docs/release/v1.5-release-checklist.md) for actual scope and verification limits.
 
 Prerequisites: patched Java21, Maven3.9+, Node24 LTS/npm. Deployment requires MySQL8.4 LTS, Linux/systemd/Nginx and approved TLS/backup infrastructure. The tested local baseline is recorded in [ADR-001](docs/adr/ADR-001-tech-stack.md). Production acceptance remains separate.
