@@ -1,0 +1,183 @@
+{
+  "verifiedAt": "2026-11-01T05:04:12.761Z",
+  "scope": "Clean source copy; isolated loopback H2 synthetic demo only",
+  "productionAcceptance": false,
+  "runtime": {
+    "java": "21.0.2",
+    "node": "22.23.4",
+    "browser": "Chromium 1228 via cached Playwright"
+  },
+  "frontendFinalGates": {
+    "runtime": "Node 24.22.1",
+    "lint": 0,
+    "typecheck": 0,
+    "vitest": {
+      "passed": 20,
+      "failed": 0
+    },
+    "build": 0,
+    "existingChunkWarning": true
+  },
+  "backendBuild": "Copied final patched root executable JAR and pom into clean source copy; matching SHA256 verified before actual demo startup. Backend full test gate is recorded separately by coordinating reviewer.",
+  "backendPort": 18385,
+  "frontendPort": 15385,
+  "checks": [
+    {
+      "name": "anonymous me rejected",
+      "result": "PASS"
+    },
+    {
+      "name": "login without CSRF rejected",
+      "result": "PASS"
+    },
+    {
+      "name": "HTTP CSRF and seeded login",
+      "result": "PASS"
+    },
+    {
+      "name": "HTTP me initial password required",
+      "result": "PASS"
+    },
+    {
+      "name": "HTTP password change invalidates session",
+      "result": "PASS"
+    },
+    {
+      "name": "HTTP login with changed password",
+      "result": "PASS"
+    },
+    {
+      "name": "HTTP logout revokes session",
+      "result": "PASS"
+    },
+    {
+      "name": "source link points to corresponding repository",
+      "result": "PASS"
+    },
+    {
+      "name": "login 1440px no horizontal overflow",
+      "result": "PASS"
+    },
+    {
+      "name": "login 375px no horizontal overflow",
+      "result": "PASS"
+    },
+    {
+      "name": "login 768px no horizontal overflow",
+      "result": "PASS"
+    },
+    {
+      "name": "browser real employee login",
+      "result": "PASS"
+    },
+    {
+      "name": "password-change 1440px no horizontal overflow",
+      "result": "PASS"
+    },
+    {
+      "name": "password-change 375px no horizontal overflow",
+      "result": "PASS"
+    },
+    {
+      "name": "password-change 768px no horizontal overflow",
+      "result": "PASS"
+    },
+    {
+      "name": "browser password form inspected",
+      "result": "PASS"
+    },
+    {
+      "name": "browser password change requires reauthentication",
+      "result": "PASS"
+    },
+    {
+      "name": "browser re-login reaches live employee dashboard",
+      "result": "PASS"
+    },
+    {
+      "name": "employee dashboard 1440px no horizontal overflow",
+      "result": "PASS"
+    },
+    {
+      "name": "employee dashboard 375px no horizontal overflow",
+      "result": "PASS"
+    },
+    {
+      "name": "employee dashboard 768px no horizontal overflow",
+      "result": "PASS"
+    },
+    {
+      "name": "mobile source footer center receives pointer hit after scrolling",
+      "result": "PASS"
+    },
+    {
+      "name": "browser logout returns to login",
+      "result": "PASS"
+    },
+    {
+      "name": "zero browser page errors",
+      "result": "PASS"
+    }
+  ],
+  "pageErrors": [],
+  "screenshots": [
+    "docs/images/oss-demo-login-desktop.png",
+    "docs/images/oss-demo-employee-desktop.png",
+    "docs/images/oss-demo-employee-mobile.png"
+  ],
+  "credentials": "Random in-memory only; not included in evidence",
+  "limits": [
+    "Local H2 synthetic demo only",
+    "Does not establish production MySQL, deployment, backup or release acceptance"
+  ],
+  "backendArtifactSHA256": "a541ec970ee0e1bc1f36e8cd27eb8bad30a63767c4e498909a3225d0754dd440",
+  "backendPomSHA256": "afa734d8e8b0d0e9186c5b9ed122ca57dc9383592640bbf6412bd29b89b049d7",
+  "cleanBackendArtifactMatchesRoot": true,
+  "backendPackagedLibraries": [
+    "BOOT-INF/lib/tomcat-embed-core-10.1.61.jar",
+    "BOOT-INF/lib/spring-webmvc-6.2.19.jar",
+    "BOOT-INF/lib/jackson-databind-2.21.7.jar",
+    "BOOT-INF/lib/jackson-annotations-2.21.jar",
+    "BOOT-INF/lib/jackson-core-2.21.7.jar"
+  ],
+  "layoutFixes": [
+    "security-page uses grid-template-columns:minmax(0,1fr); implicit grid previously kept password card at 520px on 375px viewport",
+    "App.vue source-notice has mobile padding-bottom:80px at max-width:767px; fixed mobile navigation previously intercepted link center"
+  ],
+  "sourceFooterPointerTest": {
+    "viewport": 375,
+    "method": "scrollIntoViewIfNeeded then elementFromPoint at link center",
+    "before": {
+      "hit": "NAV.mobile-nav",
+      "visible": false
+    },
+    "after": {
+      "hit": "A",
+      "visible": true,
+      "linkTop": 861.46875,
+      "linkBottom": 877.46875
+    },
+    "result": "PASS"
+  },
+  "cleanup": {
+    "script": "scripts/stop-demo.ps1",
+    "identityChecks": [
+      "PID",
+      "exact executable path",
+      "exact UTC creation time"
+    ],
+    "result": "PASS; both demo processes stopped; state file removed; no listeners on run ports"
+  },
+  "sourceFiles": {
+    "frontend/src/App.vue": "8fc628f82bb3bded78fc7de02b110e344fd65da8d0bf9d13f5f47bf232f0f911",
+    "frontend/src/style.css": "f4ff4030cb299d3f1621ff26796510e46b9878a829eec59493e411744ce51809"
+  },
+  "screenshotsReviewed": "Synthetic demo employee and empty dashboard only; login image retains existing anonymous-session expiry banner",
+  "commands": [
+    "Copy root patched backend/pom.xml and executable JAR into clean copy; compare SHA256",
+    "Node24 npm run lint / typecheck / test / build in clean frontend (unchanged final frontend sources from previous passing gate)",
+    "scripts/start-demo.ps1 -Demo -UseBuiltArtifacts -JavaPath <deployed Java21> -NodePath <deployed Node22> -BackendPort 18385 -FrontendPort 15385",
+    "Node22 .cache/oss-clean-browser.cjs (cached Playwright/Chromium; random credentials inherited through memory-only environment)",
+    "scripts/stop-demo.ps1 -StateFile <clean-source>/.cache/demo-18385-15385/processes.json"
+  ]
+}

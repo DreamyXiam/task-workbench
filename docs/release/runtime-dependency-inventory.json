@@ -1,7 +1,9 @@
 {
-  "generatedAt": "2026-10-25",
+  "generatedAt": "2026-11-01",
   "source": "Actual repackaged JAR BOOT-INF/lib",
-  "notice": "Inventory only; not a reviewed SBOM/license/vulnerability report",
+  "notice": "Artifact inventory; reviewed dependency metadata and SBOM evidence are in docs/release/licenses/REVIEW.md. Security applicability evidence is in docs/security/.",
+  "artifact": "backend/target/task-workbench-1.5.0-SNAPSHOT.jar",
+  "artifactSha256": "a541ec970ee0e1bc1f36e8cd27eb8bad30a63767c4e498909a3225d0754dd440",
   "libraries": [
     {
       "file": "spring-boot-3.5.16.jar",
@@ -49,29 +51,29 @@
       "bytes": 339825
     },
     {
-      "file": "jackson-datatype-jdk8-2.21.4.jar",
-      "sha256": "2dde4a8f1aad3306c040f56ff40da81c6d58dcef3434c00849c9bce09f56a074",
-      "bytes": 36040
+      "file": "jackson-datatype-jdk8-2.21.7.jar",
+      "sha256": "b8f62f98363ed9aa259b3a479a64fcbe7e081158a8bec6733972e900d12f4e47",
+      "bytes": 36039
     },
     {
-      "file": "jackson-datatype-jsr310-2.21.4.jar",
-      "sha256": "d1ac4b98b70304e56448423589fde5e775b100889643ad1ead62cc7811633684",
-      "bytes": 136585
+      "file": "jackson-datatype-jsr310-2.21.7.jar",
+      "sha256": "5989b937f0aa5b6407e7a061077c9bfcac0590dc0a32e54b2fac6a3e2d49e812",
+      "bytes": 136878
     },
     {
-      "file": "jackson-module-parameter-names-2.21.4.jar",
-      "sha256": "9510f91a4be2c700753ad244596b67424cb32c23659db1dc534219226e5df3a3",
-      "bytes": 10187
+      "file": "jackson-module-parameter-names-2.21.7.jar",
+      "sha256": "ffe66bf4bbb7b4f201aad456294312f13b3649aa392c36d95e786c910a0d513a",
+      "bytes": 10188
     },
     {
-      "file": "tomcat-embed-core-10.1.55.jar",
-      "sha256": "82473f841824095e03f2c938c18707e44e388e34fb1735b2b338bb4f22fd54f0",
-      "bytes": 3673934
+      "file": "tomcat-embed-core-10.1.61.jar",
+      "sha256": "57b8e4bdb3a49163c3a6a501929240531523c111ff53844c9f82efba60f789f7",
+      "bytes": 3730033
     },
     {
-      "file": "tomcat-embed-websocket-10.1.55.jar",
-      "sha256": "81800431395fe2ef317fc14075ed49faaa64679a3458ee8791159111a1aa1b37",
-      "bytes": 284383
+      "file": "tomcat-embed-websocket-10.1.61.jar",
+      "sha256": "4b8c0f6506a31f79b9df08385b8fcf7c905ceee2cec2b958d6094a0601b721ef",
+      "bytes": 289804
     },
     {
       "file": "spring-web-6.2.19.jar",
@@ -114,9 +116,9 @@
       "bytes": 1058459
     },
     {
-      "file": "tomcat-embed-el-10.1.55.jar",
-      "sha256": "a527fe51c6f9428c5116f78fe28588e55357b4492309b51fb0453372da16fa5f",
-      "bytes": 264325
+      "file": "tomcat-embed-el-10.1.61.jar",
+      "sha256": "a72e0e067ae4e5b9aba0b36c7812cbe268c555648355c9d3e662bbff0d07f972",
+      "bytes": 266006
     },
     {
       "file": "hibernate-validator-8.0.3.Final.jar",
@@ -179,9 +181,9 @@
       "bytes": 749548
     },
     {
-      "file": "jackson-databind-2.21.4.jar",
-      "sha256": "3888e9e69ab66fbacaacc9aea0e9ffbf15368288e4aca468b024dba11c09fbf9",
-      "bytes": 1702879
+      "file": "jackson-databind-2.21.7.jar",
+      "sha256": "1290c2795e93e8a6861a6c4d9ff0d844d32f5ea178362cb2721edf5561e828b1",
+      "bytes": 1709095
     },
     {
       "file": "jackson-annotations-2.21.jar",
@@ -189,9 +191,9 @@
       "bytes": 82104
     },
     {
-      "file": "jackson-core-2.21.4.jar",
-      "sha256": "4b40a06396f239f8de2da57419adde6e94e5edc18a2171d471ea05eeed4e5c2d",
-      "bytes": 594183
+      "file": "jackson-core-2.21.7.jar",
+      "sha256": "8c5623b98f32d5f7e1287ff61ed50e08ab7b11381e991fff89327faabba42261",
+      "bytes": 594782
     },
     {
       "file": "flyway-mysql-11.20.3.jar",

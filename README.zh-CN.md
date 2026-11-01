@@ -6,7 +6,13 @@
 
 本项目面向希望自行部署组织协同工作台的团队，覆盖部门任务分派、跨公司协作、成果验收和可审计的 KPI 快照。当前定位为开发预览版，生产验收仍未完成。
 
-项目原创代码采用 [GNU AGPL v3.0](LICENSE)（仅第 3 版，`AGPL-3.0-only`）。第三方组件保留各自许可证，依赖许可证审查仍待完成。参与开发请阅读[贡献指南](CONTRIBUTING.md)，安全问题请按[安全报告说明](SECURITY.md)私下报告；公开前需完成[开源准备清单](docs/release/open-source-readiness.md)。加入许可证不代表已经公开发布或提供生产支持。
+项目原创代码采用 [GNU AGPL v3.0](LICENSE)（仅第 3 版，`AGPL-3.0-only`）。第三方组件保留各自许可证，依赖清单与分发条件见下方审查记录。参与开发请阅读[贡献指南](CONTRIBUTING.md)，安全问题请按[安全报告说明](SECURITY.md)私下报告；公开前需完成[开源准备清单](docs/release/open-source-readiness.md)。加入许可证不代表已经公开发布或提供生产支持。
+
+依赖声明、SBOM 和上游声明已完成清点，见[许可证审查记录](docs/release/licenses/REVIEW.md)。本预览版仅发布源码；二进制发布仍有额外的署名和对应源码交付条件。通过网络部署修改版时，请设置指向实际部署版本的[对应源码入口](docs/release/source-distribution.md)。
+
+![合成数据员工工作台](docs/images/oss-demo-employee-desktop.png)
+
+截图来自隔离 H2 数据库及虚构员工，不含真实业务记录。[干净环境演示证据](docs/testing/evidence/oss-clean-demo-20261101.json)涵盖真实登录与窄屏检查，不代表生产验收通过。
 
 任务工作台是一个覆盖任务生命周期的源代码项目，提供基于作用范围的 Session/CSRF 安全机制、不可变的 KPI 考核结果，以及 Vue 3/TypeScript 工作台。当前代码可供审查，**尚未通过生产环境验收**。实际范围和验证限制请查阅[验收矩阵](docs/testing/acceptance-matrix.md)、[实现与验证记录](docs/implementation/)和[发布检查清单](docs/release/v1.5-release-checklist.md)。
 

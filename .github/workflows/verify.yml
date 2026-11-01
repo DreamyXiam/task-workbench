@@ -21,10 +21,12 @@ jobs:
           cache: maven
       - run: mvn -B -ntp -f backend/pom.xml verify
       - run: mvn -B -ntp -f backend/pom.xml org.cyclonedx:cyclonedx-maven-plugin:2.9.1:makeAggregateBom -DincludeTestScope=true
+      - name: Unfiltered backend advisory evidence
+        run: docker run --rm -v "$PWD:/repo" aquasec/trivy:0.67.2@sha256:e2b22eac59c02003d8749f5b8d9bd073b62e30fefaef5b7c8371204e0a4b0c08 sbom --severity HIGH,CRITICAL --format json --output /repo/backend/target/trivy-sbom-unfiltered.json /repo/backend/target/bom.json
       - name: Resolved backend dependency vulnerability gate
-        run: docker run --rm -v "$PWD:/repo" aquasec/trivy:0.67.2@sha256:e2b22eac59c02003d8749f5b8d9bd073b62e30fefaef5b7c8371204e0a4b0c08 sbom --severity HIGH,CRITICAL --exit-code 1 --format json --output /repo/backend/target/trivy-sbom.json /repo/backend/target/bom.json
+        run: docker run --rm -v "$PWD:/repo" aquasec/trivy:0.67.2@sha256:e2b22eac59c02003d8749f5b8d9bd073b62e30fefaef5b7c8371204e0a4b0c08 sbom --vex /repo/docs/security/spring-mvc.openvex.json --severity HIGH,CRITICAL --exit-code 1 --format json --output /repo/backend/target/trivy-sbom.json /repo/backend/target/bom.json
       - name: Packaged backend vulnerability gate
-        run: docker run --rm -v "$PWD:/repo" aquasec/trivy:0.67.2@sha256:e2b22eac59c02003d8749f5b8d9bd073b62e30fefaef5b7c8371204e0a4b0c08 fs --scanners vuln --severity HIGH,CRITICAL --exit-code 1 --format json --output /repo/backend/target/trivy-jar.json /repo/backend/target/task-workbench-1.5.0-SNAPSHOT.jar
+        run: docker run --rm -v "$PWD:/repo" aquasec/trivy:0.67.2@sha256:e2b22eac59c02003d8749f5b8d9bd073b62e30fefaef5b7c8371204e0a4b0c08 fs --vex /repo/docs/security/spring-mvc.openvex.json --scanners vuln --severity HIGH,CRITICAL --exit-code 1 --format json --output /repo/backend/target/trivy-jar.json /repo/backend/target/task-workbench-1.5.0-SNAPSHOT.jar
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
@@ -33,6 +35,7 @@ jobs:
           path: |
             backend/target/surefire-reports
             backend/target/trivy-sbom.json
+            backend/target/trivy-sbom-unfiltered.json
             backend/target/trivy-jar.json
             backend/target/bom.*
   frontend:

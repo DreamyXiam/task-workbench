@@ -1,6 +1,6 @@
 # Dependency license and SBOM review — 2026-11-01
 
-This is a dependency metadata and artifact inspection, not a legal opinion or a blanket compatibility certification. No dependency or runtime version was changed. Original-code publication rights and the AGPL-3.0-only selection were confirmed separately by the owner.
+This is a dependency metadata and artifact inspection, not a legal opinion or a blanket compatibility certification. Jackson was patched from 2.21.4 to 2.21.7 through its BOM, and the three Tomcat embed components from 10.1.55 to 10.1.61 through explicit dependency management. Spring Boot 3.5.16 / Spring Framework 6.2.19 and installed runtimes remain unchanged. Original-code publication rights and the AGPL-3.0-only selection were confirmed separately by the owner.
 
 ## Evidence and coverage
 
@@ -39,3 +39,11 @@ Use the existing Java 21, Node 24.22.1/npm 11.19.1, and Maven 3.9.16 already pre
 ```
 
 Maven completed with BUILD SUCCESS. Its validator emitted warnings about `meta:enum` and `deprecated` schema keywords, but generated and attached both SBOM formats successfully. JSON parsing, component counts, missing-license checks, lockfile deduplication, and JAR membership reconciliation were performed independently. SBOM timestamps/serial numbers may vary on regeneration. Regenerate and re-review after any manifest/lockfile or distribution artifact change.
+
+## Security patch validation
+
+The backend `clean verify` completed successfully after the security patches: **101 tests, zero failures/errors/skips**. The refreshed SBOM and actual repackaged JAR resolve Jackson core/databind/datatype/module components to 2.21.7 (annotations remains 2.21, as selected by the upstream BOM), and Tomcat core/el/websocket to 10.1.61. Component totals and licenses remain unchanged. Patched artifacts' notices have been extracted. Prior-version Jackson 2.21.4 and Tomcat 10.1.55 notice directories are retained as historical evidence only; the CSV/SBOM identifies the current versions.
+
+Patch choice evidence: [FasterXML jackson-core release notes](https://github.com/FasterXML/jackson-core/blob/3.x/release-notes/VERSION-2.x), [FasterXML jackson-databind release notes](https://github.com/FasterXML/jackson-databind/blob/3.x/release-notes/VERSION-2.x), and [Apache Tomcat 10 security advisories](https://tomcat.apache.org/security-10). Jackson's BOM is imported before Boot's BOM so its aligned versions take precedence; overriding a property alone would not override the imported Boot BOM here. Tomcat's three embedded artifacts are explicitly managed together.
+
+Spring's [CVE-2026-47884 advisory](https://spring.io/security/cve-2026-47884/) requires XsltView plus catch-all implicit view rendering. Its [CVE-2026-47890 advisory](https://spring.io/security/cve-2026-47890/) requires view fragments rendered over SSE. The corresponding 6.2.20 fix is enterprise-only; a Spring 7 major override into Boot 3 was not performed. Application-specific exploitability evidence and any scoped VEX statements belong to the security review and do not alter this license inventory.

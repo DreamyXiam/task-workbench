@@ -1,0 +1,29 @@
+{
+  "@context": "https://openvex.dev/ns/v0.2.0",
+  "@id": "https://github.com/DreamyXiam/task-workbench/blob/codex/v1.5-build/docs/security/spring-mvc.openvex.json",
+  "author": "Task Workbench maintainers",
+  "timestamp": "2026-11-01T05:00:00Z",
+  "version": 1,
+  "statements": [
+    {
+      "vulnerability": { "name": "CVE-2026-47884" },
+      "products": [{
+        "@id": "pkg:maven/cn.workbench/task-workbench@1.5.0-SNAPSHOT",
+        "subcomponents": [{ "@id": "pkg:maven/org.springframework/spring-webmvc@6.2.19" }]
+      }],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Applies only to this application's REST-only configuration guarded by SpringMvcExposureTest. No XsltView or XsltViewResolver beans or XSLT view configuration; application request handlers use response-body semantics. The official advisory requires XsltView rendering with a catch-all mapping and an implicit view name. Reassess upon view/configuration/version changes; see spring-mvc-vex-review.md."
+    },
+    {
+      "vulnerability": { "name": "CVE-2026-47890" },
+      "products": [{
+        "@id": "pkg:maven/cn.workbench/task-workbench@1.5.0-SNAPSHOT",
+        "subcomponents": [{ "@id": "pkg:maven/org.springframework/spring-webmvc@6.2.19" }]
+      }],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Applies only to this application's REST-only configuration guarded by SpringMvcExposureTest. No SSE endpoints, SSE emitters, or view-fragment rendering in application handlers/configuration. The official advisory requires view fragments sent over SSE with attacker-controlled content. Reassess upon streaming/view/configuration/version changes; see spring-mvc-vex-review.md."
+    }
+  ]
+}

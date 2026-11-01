@@ -80,7 +80,7 @@
   "backend_sbom_components": 97,
   "backend_bundled_components": 59,
   "jar_component_count": 59,
-  "jar_sha256": "33cd21900eacfaf2a7620756f5a965469b78733d911b23aab68a2adf5b61674e",
+  "jar_sha256": "a541ec970ee0e1bc1f36e8cd27eb8bad30a63767c4e498909a3225d0754dd440",
   "backend_notice_extraction_notes": [
     "ch.qos.logback:logback-classic:1.5.34: no embedded top-level license/notice matched",
     "ch.qos.logback:logback-core:1.5.34: no embedded top-level license/notice matched",
@@ -106,7 +106,7 @@
   ],
   "source_hashes": {
     "frontend\\package-lock.json": "30ff4b274c4354acf6389c48c01783ecc233b0a7685005db8a1273ce2e9bd304",
-    "backend\\pom.xml": "59297a66c14cf126bb347738eb34844fe34daefe9b2fc39d3ef8b703f7f79fae"
+    "backend\\pom.xml": "afa734d8e8b0d0e9186c5b9ed122ca57dc9383592640bbf6412bd29b89b049d7"
   },
   "backend_inventory_components": 98,
   "backend_packaging_injected_component": "org.springframework.boot:spring-boot-jarmode-tools:3.5.16",

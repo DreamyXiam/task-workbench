@@ -6,7 +6,13 @@
 
 Task Workbench supports department-based task assignment, cross-company collaboration, delivery review and auditable KPI snapshots. It is intended for teams evaluating a self-hosted organizational workbench. This is a development preview; production acceptance remains pending.
 
-Original project code is licensed under [GNU AGPL v3.0 only](LICENSE) (`AGPL-3.0-only`). Third-party components retain their own licenses; dependency license review is still pending. See [contributing](CONTRIBUTING.md), [security reporting](SECURITY.md), and the [public-release checklist](docs/release/open-source-readiness.md). No public release or production support is implied by this license.
+Original project code is licensed under [GNU AGPL v3.0 only](LICENSE) (`AGPL-3.0-only`). Third-party components retain their own licenses; the dependency inventory and distribution conditions are recorded below. See [contributing](CONTRIBUTING.md), [security reporting](SECURITY.md), and the [public-release checklist](docs/release/open-source-readiness.md). No public release or production support is implied by this license.
+
+Dependency declarations, SBOMs and upstream notices are now inventoried in [the license review](docs/release/licenses/REVIEW.md). This preview publishes source; binary redistribution has additional notice/source conditions. Network deployers must configure the [corresponding-source link](docs/release/source-distribution.md) for their deployed version.
+
+![Synthetic employee dashboard](docs/images/oss-demo-employee-desktop.png)
+
+The screenshot uses an isolated H2 database and a synthetic employee, with no real business records. [Clean-demo evidence](docs/testing/evidence/oss-clean-demo-20261101.json) covers actual authentication and responsive layouts; it does not establish production readiness.
 
 A source project for the task lifecycle, scoped Session/CSRF security, immutable KPI assessment and a Vue3/TypeScript workbench. This working tree is a reviewable implementation; it is **not yet approved for production**. Check [acceptance](docs/testing/acceptance-matrix.md), [implementation evidence](docs/implementation/) and [release gates](docs/release/v1.5-release-checklist.md) for actual scope and verification limits.
 

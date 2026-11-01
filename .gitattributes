@@ -2,3 +2,5 @@
 *.png binary
 *.pdf binary
 *.zip binary
+# Preserve upstream legal notices byte-for-byte, including their whitespace.
+docs/release/licenses/upstream-notices/** -text -whitespace

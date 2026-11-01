@@ -2,6 +2,8 @@
 
 Updated2026-10-25 (Asia/Shanghai). Decision: select Boot3.5.16 + MyBatis Starter3.0.5 for this development branch. Production release approval remains pending.
 
+2026-11-01 security patch update: retain the above framework baseline, align Jackson through BOM2.21.7 and all embedded Tomcat artifacts to10.1.61. Backend verification now covers102 tests, including the application-specific Spring MVC exposure guard. See [current dependency review](../release/licenses/REVIEW.md) and [Spring VEX assessment](../security/spring-mvc-vex-review.md). This does not close production acceptance gates.
+
 | Component | Tested local version | Evidence and limit |
 |---|---|---|
 | Java | Amazon Corretto21.0.13+10-LTS | Actual compiler/tests/package. Local official archive ZIP CRC checked; vendor detached signature was not independently verified. |
