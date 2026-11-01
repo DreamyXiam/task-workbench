@@ -1,5 +1,7 @@
 # 任务工作台 V1.5
 
+[简体中文](README.zh-CN.md) | English
+
 A source project for the task lifecycle, scoped Session/CSRF security, immutable KPI assessment and a Vue3/TypeScript workbench. This working tree is a reviewable implementation; it is **not yet approved for production**. Check [acceptance](docs/testing/acceptance-matrix.md), [implementation evidence](docs/implementation/) and [release gates](docs/release/v1.5-release-checklist.md) for actual scope and verification limits.
 
 Prerequisites: patched Java21, Maven3.9+, Node24 LTS/npm. Deployment requires MySQL8.4 LTS, Linux/systemd/Nginx and approved TLS/backup infrastructure. The tested local baseline is recorded in [ADR-001](docs/adr/ADR-001-tech-stack.md). Production acceptance remains separate.
