@@ -1,0 +1,19 @@
+{
+  "reviewedAt": "2026-11-01",
+  "sourceHead": "36c440a2efa717af41d342648f89aefdd4b71cd3",
+  "localReachableCommits": 9,
+  "distinctHistoricalBlobs": 189,
+  "headTrackedPaths": 166,
+  "binaryBlobs": 0,
+  "gitleaks": {
+    "version": "8.28.0",
+    "allLocalRefs": true,
+    "exitCode": 0,
+    "nonExemptFindings": 0,
+    "preciseExistingExceptions": 10
+  },
+  "currentDocAttachmentIdentifiersRedacted": 3,
+  "historyRewritten": false,
+  "remoteOnlyRefsReviewed": false,
+  "repositoryVisibilityChanged": false
+}

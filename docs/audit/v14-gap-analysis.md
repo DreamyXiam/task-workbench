@@ -13,9 +13,9 @@
 
 | 编号 | 资料 | 本次取得的证据及限制 |
 |---|---|---|
-| S1 | 《任务工作台_V1.5_Codex开发任务清单.md》 | 读取完整 466 行，采用第 0、1 节统一总指令、第 2 节 CDEX-001、第 4 节 ADR 目录及第 6 节阅读索引。身份：`libfile_668559b9ca04819181005c58ea5c5d3b`。 |
-| S2 | 本轮附件《任务工作台_V1.5_Codex开发任务清单(1).md》 | 已定位：`libfile_2eb8a9b68f348191acc2f76fc635d2b2`，45,533 字节；正文读取无可读内容，下载因 DNS 失败。与 S1 的逐字一致性**未验证**；不能仅凭相同字节数认定相同。本报告使用用户指定原名的 S1。 |
-| S3 | 《任务工作台 V1.4 完整项目设计方案.pdf》远端原件 | 已定位：`libfile_0c94d94d968c81918943e2ed0305f5b9`，5,508,957 字节；正文/页读取均无可读内容，下载失败。没有声称已读到该远端原件全文。 |
+| S1 | 《任务工作台_V1.5_Codex开发任务清单.md》 | 读取完整 466 行，采用第 0、1 节统一总指令、第 2 节 CDEX-001、第 4 节 ADR 目录及第 6 节阅读索引。身份：`[attachment identifier redacted]`。 |
+| S2 | 本轮附件《任务工作台_V1.5_Codex开发任务清单(1).md》 | 已定位：`[attachment identifier redacted]`，45,533 字节；正文读取无可读内容，下载因 DNS 失败。与 S1 的逐字一致性**未验证**；不能仅凭相同字节数认定相同。本报告使用用户指定原名的 S1。 |
+| S3 | 《任务工作台 V1.4 完整项目设计方案.pdf》远端原件 | 已定位：`[attachment identifier redacted]`，5,508,957 字节；正文/页读取均无可读内容，下载失败。没有声称已读到该远端原件全文。 |
 | S4 | 当前目录保留的 V1.4 本地 50 页渲染副本 | `D:\TASK\.docx_work\render5\task-workbench.pdf`，5,458,163 字节；成功提取 50/50 页，共 48,372 字符。封面为 V1.4、2026-10-23、含登录人员水印；以下页码均对应此副本。与 S3 字节不一致，内容一致性尚未验证。 |
 | S5 | 当前 V1.4 本地来源与生成程序 | `.docx_work/updated_source.md`、`build_task_workbench_docx.py`、工作区现有 V1.4 DOCX。阅读 Markdown 内容和生成程序；未重新生成或覆盖。 |
 | S6 | 当前工程资料 | `README.md`、`scripts/*.ps1`、`tests/*.ps1`、`docs/superpowers/specs/2026-10-23-e-drive-dev-environment-design.md`、对应 plans 文件、安装包 ZIP 条目。 |

@@ -7,6 +7,7 @@ import { api,errorText,onSessionExpired,sessionEpoch } from './api'
 import { roles } from './domain'
 import type { Row } from './domain'
 import UserWatermark from './components/UserWatermark.vue'
+const sourceUrl=import.meta.env.VITE_SOURCE_URL||'https://github.com/DreamyXiam/task-workbench'
 const auth=useAuth(),route=useRoute(),router=useRouter(),boot=ref(true),busy=ref(false),error=ref(''),account=ref(''),password=ref(''),totp=ref(''),recovery=ref(''),oldPassword=ref(''),newPassword=ref(''),confirmPassword=ref(''),setup=ref<Row|null>(null),useRecovery=ref(false),mobileMenu=ref(false),security=ref(false),recoveryCodes=ref<string[]>([]),securityStep=ref('totp')
 const nav=computed(()=>{const common=[{to:'/',label:'工作概览',mark:'概'},{to:'/tasks',label:'任务中心',mark:'任'},{to:'/mine',label:'我的任务',mark:'我'},{to:'/collaborations',label:'协同确认',mark:'协'},{to:'/notifications',label:'通知中心',mark:'知'}];if(auth.me?.role!=='EMPLOYEE'&&!auth.me?.delegation)common.push({to:'/reports',label:'统计分析',mark:'统'},{to:'/kpi',label:'部门考核',mark:'绩'});if(['GROUP_LEADER','DIVISION_LEADER','COMPANY_LEADER'].includes(auth.me?.role??''))common.push({to:'/admin/audit-logs',label:'操作留痕',mark:'审'});common.push({to:'/organization-changes',label:'岗位与交接',mark:'岗'});if(auth.me?.role!=='EMPLOYEE'&&!auth.me?.delegation)common.push({to:'/calendar-simulation',label:'日历模拟',mark:'历'});return common})
 const adminNav=[['companies','公司管理'],['departments','部门管理'],['users','用户与岗位'],['tags','职能标签'],['rules','匹配规则'],['notification-channels','通知渠道'],['audit-logs','操作日志']]
@@ -37,4 +38,9 @@ onBeforeUnmount(()=>{setup.value=null})
 <aside class="sidebar"><p class="nav-heading">工作空间</p><nav aria-label="主导航"><router-link v-for="n in nav" :key="n.to" :to="n.to" :class="{active:route.path===n.to||(n.to==='/tasks'&&route.path.startsWith('/tasks/'))}"><span class="nav-symbol">{{ n.mark }}</span>{{ n.label }}</router-link><template v-if="auth.me.role==='ADMIN'"><p class="nav-heading">系统管理</p><router-link v-for="a in adminNav" :key="a[0]" :to="'/admin/'+a[0]" :class="{active:route.path==='/admin/'+a[0]}"><span class="nav-symbol">配</span>{{ a[1] }}</router-link></template></nav><div class="sidebar-foot"><span class="online-dot"/>组织会话已连接<br><small>内部数据，请按权限使用</small></div></aside>
 <main id="main-content" class="main-content"><el-alert v-if="error" :title="error" type="error" closable @close="error=''"/><router-view :key="auth.me.id+':'+auth.me.role+':'+auth.me.companyId+':'+sessionEpoch()"/></main><nav class="mobile-nav" aria-label="移动导航"><router-link to="/">概览</router-link><router-link to="/tasks">任务</router-link><router-link to="/mine">我的</router-link><button @click="mobileMenu=true">更多</button></nav><el-drawer v-model="mobileMenu" title="工作空间" direction="btt" size="70%"><nav class="drawer-nav"><router-link v-for="n in nav" :key="n.to" :to="n.to" @click="mobileMenu=false">{{ n.label }}</router-link><template v-if="auth.me.role==='ADMIN'"><router-link v-for="a in adminNav" :key="a[0]" :to="'/admin/'+a[0]" @click="mobileMenu=false">{{ a[1] }}</router-link></template></nav></el-drawer><UserWatermark :key="auth.me.id+auth.me.role+auth.me.companyId"/>
 </div>
+<footer class="source-notice"><a :href="sourceUrl" target="_blank" rel="noopener noreferrer">对应源码 · AGPL-3.0</a></footer>
 </template>
+<style scoped>
+.source-notice{padding:10px 16px;text-align:center;font-size:12px;background:#f5f7fa}
+.source-notice a{color:#185fa5;text-decoration:underline;overflow-wrap:anywhere}
+</style>
