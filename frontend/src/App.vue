@@ -43,4 +43,5 @@ onBeforeUnmount(()=>{setup.value=null})
 <style scoped>
 .source-notice{padding:10px 16px;text-align:center;font-size:12px;background:#f5f7fa}
 .source-notice a{color:#185fa5;text-decoration:underline;overflow-wrap:anywhere}
+@media(max-width:767px){.source-notice{padding-bottom:80px}}
 </style>
