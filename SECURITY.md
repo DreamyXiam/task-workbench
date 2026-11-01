@@ -4,7 +4,7 @@ Task Workbench V1.5 is a development preview. No production-supported release or
 
 ## Reporting a vulnerability
 
-Do not publish exploit details, credentials or personal data in issues or pull requests. If GitHub's **Security → Report a vulnerability** is available, use that private channel. Otherwise email the maintainer at **wordpressxiam@qq.com**, the contact displayed on https://github.com/DreamyXiam (checked 2026-11-01). Use the subject `Task Workbench security report` and start with a brief description and affected commit; agree on a suitable channel before sending sensitive attachments. No test email was sent. GitHub private vulnerability reporting cannot be enabled while this repository is private; enable and verify it immediately after public visibility is approved.
+Do not publish exploit details, credentials or personal data in issues or pull requests. If GitHub's **Security → Report a vulnerability** is available, use that private channel. Otherwise email the maintainer at **wordpressxiam@qq.com**, the contact displayed on https://github.com/DreamyXiam (checked 2026-11-01). Use the subject `Task Workbench security report` and start with a brief description and affected commit; agree on a suitable channel before sending sensitive attachments. No test email was sent. GitHub private vulnerability reporting was enabled on 2026-11-01 and the anonymous [Report a vulnerability entry](https://github.com/DreamyXiam/task-workbench/security/advisories) was verified.
 
 Include the affected commit, prerequisites, a minimal synthetic reproduction, impact, and suggested mitigation if known. Avoid testing systems you do not own or have permission to assess. Never send production passwords, session cookies, TOTP seeds or real employee records.
 

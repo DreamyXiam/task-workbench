@@ -27,14 +27,16 @@ The previous keyless NVD bootstrap did not complete and is not counted as a pass
 
 Final required-cloud status and tested commit: see the accompanying source-preview security evidence and GitHub Actions run. No pending/scanner-error result may be represented as a pass.
 
-## Settings that require public visibility
+## Verified public repository settings
 
-GitHub returned 403/upgrade-required for private-repository branch protection. The attempted classic-rule creation was not saved. GitHub private vulnerability reporting is available for public repositories; the current private repository does not expose its enable control. These are platform constraints, not completed settings.
+The repository was observed public on 2026-11-01; this task did not change its visibility. The former private-repository plan restriction no longer blocks settings. After the owner completed GitHub's required sudo reauthentication:
 
-Prepared exact configuration: [github-publication-settings.json](github-publication-settings.json). Immediately after the owner approves public visibility:
+- [x] Private vulnerability reporting enabled; reloaded settings show Disable, and the anonymous [security advisories page](https://github.com/DreamyXiam/task-workbench/security/advisories) exposes Report a vulnerability. No test report/email was submitted.
+- [x] Branch rule 85658454 created for codex/v1.5-build; API branch metadata confirms protected=true. Read-back requires backend/frontend/security checks, an up-to-date branch, a PR, resolved conversations, and enforcement for administrators. Force-push and deletion remain disabled. Zero required external approvals accommodates the solo maintainer without bypassing CI.
+- [x] Anonymous repository/README, AGPL license and screenshot access verified; raw license/image returned HTTP200. Source link now resolves to the publicly readable project.
 
-1. Enable private vulnerability reporting and verify an unauthenticated public visitor can see the private report entry.
-2. Apply branch protection to codex/v1.5-build: require backend/frontend/security checks, up-to-date branch, PR, resolved conversations, no force-push/deletion, and admin enforcement. Zero required external approvals supports the current solo maintainer; it does not bypass CI.
-3. Confirm anonymous access to README, license, source link, screenshots and reporting instructions. Re-read effective protection settings. Do not assert these checks before they happen.
+The [prepared configuration](github-publication-settings.json) records the intended rule and verified settings. The connector cannot read the administration-only protection endpoint, so detailed read-back used the authenticated GitHub settings UI; the protected flag was independently confirmed through repository branch metadata.
 
-No paid account upgrade, public-visibility change, release/tag, or OSS application has been performed. The owner must review the final candidate including the Spring applicability assessment and approve publication; binary packages remain outside this source-preview scope.
+The complete source candidate at 6f1236d43ba34523088eecc72d32b51e670d6d14 passed [all three required CI jobs](https://github.com/DreamyXiam/task-workbench/actions/runs/41290452022). The log confirms 102 backend tests, 98 resolved scan components, and 62 actual-artifact scan components. Two original Spring findings remain in the raw reports and receive the exact reviewed application-specific not-affected decision. Frontend production dependencies have no audit findings; development-only moderate findings remain disclosed above.
+
+No paid upgrade, release/tag, binary distribution or OSS application was performed. Source-preview publication and production acceptance remain distinct. The final documentation update uses the protected branch's normal PR/check workflow.

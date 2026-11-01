@@ -2,7 +2,6 @@
   "repository": "DreamyXiam/task-workbench",
   "branch": "codex/v1.5-build",
   "applyOnlyAfterPublicVisibilityApproval": true,
-  "currentPrivateRepositoryLimit": "GitHub rejected protected-branch access with 403/upgrade requirement; the UI creation attempt was not saved. Private vulnerability reporting is a public-repository feature.",
   "privateVulnerabilityReporting": {
     "method": "PUT",
     "endpoint": "repos/DreamyXiam/task-workbench/private-vulnerability-reporting"
@@ -14,9 +13,18 @@
       "required_status_checks": {
         "strict": true,
         "checks": [
-          { "context": "backend", "app_id": 15368 },
-          { "context": "frontend", "app_id": 15368 },
-          { "context": "security", "app_id": 15368 }
+          {
+            "context": "backend",
+            "app_id": 15368
+          },
+          {
+            "context": "frontend",
+            "app_id": 15368
+          },
+          {
+            "context": "security",
+            "app_id": 15368
+          }
         ]
       },
       "enforce_admins": true,
@@ -30,5 +38,11 @@
       "allow_deletions": false,
       "required_conversation_resolution": true
     }
-  }
+  },
+  "verifiedDate": "2026-11-01",
+  "observedVisibility": "public",
+  "privateVulnerabilityReportingEnabled": true,
+  "branchProtectionVerified": true,
+  "branchProtectionRuleId": 85658454,
+  "historicalPrivateRepositoryLimit": "GitHub rejected protected-branch access with 403/upgrade requirement; the UI creation attempt was not saved. Private vulnerability reporting is a public-repository feature."
 }
