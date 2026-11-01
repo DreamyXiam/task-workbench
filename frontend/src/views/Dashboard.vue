@@ -20,3 +20,8 @@ onMounted(load);usePoll(load)
 <div class="dashboard-grid"><section class="panel"><div class="panel-heading"><div><h2>近期任务</h2><p class="muted">关注最新进展，及时处理关键节点</p></div><router-link to="/tasks" class="text-link">查看全部 →</router-link></div><el-empty v-if="!overview.recentTasks?.length" description="暂无近期任务"/><router-link v-for="t in overview.recentTasks" :key="t.id" :to="'/tasks/'+t.id" class="task-line"><div class="task-index">{{ t.code?.slice(-2)||'任' }}</div><div class="task-line-body"><strong>{{ t.title }}</strong><p>{{ t.code }} · 截止 {{ date(t.deadline) }}</p></div><StatusBadge :status="t.status"/></router-link></section><section class="panel attention-panel"><p class="eyebrow">FOCUS & FOLLOW UP</p><h2>让每项任务都有回响</h2><p class="muted">任务节点清楚，执行过程留痕，成果统一验收。</p><router-link to="/mine" class="quick-action"><b>我的待办</b><span>接收、执行、提交 →</span></router-link><router-link to="/collaborations" class="quick-action"><b>跨公司协同</b><span>确认协作范围与责任 →</span></router-link><router-link to="/notifications" class="quick-action"><b>通知与提醒</b><span>掌握变更和截止节点 →</span></router-link><p class="scope-note">数据按当前岗位与组织范围展示。切换岗位后将重新加载。</p></section></div>
 </PageState>
 </template>
+<style scoped>
+.metric-card { text-align: center; }
+.metric-label { position: relative; justify-content: center; padding-inline: 20px; }
+.metric-label > span { position: absolute; right: 0; }
+</style>

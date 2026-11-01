@@ -24,6 +24,12 @@ function Get-FreeLoopbackPort {
 
 try {
     $source = Get-Content -LiteralPath $sourcePath -Raw
+    if ($source -match 'ConvertTo-SecureString|ConvertFrom-SecureString') {
+        throw 'Demo launcher must not depend on the PowerShell Security module for DPAPI key storage.'
+    }
+    if ($source -notmatch 'Security\.Cryptography\.ProtectedData') {
+        throw 'Demo launcher must use Windows DPAPI ProtectedData for its local TOTP key.'
+    }
     $pattern = '(?s)function Wait-DemoEndpoint\(\[string\]\$Url,\[System\.Diagnostics\.Process\]\$Process,\[int\]\$Seconds\) \{.*?\r?\n\}\r?\n\$backend = \$null'
     $replacement = "function Wait-DemoEndpoint([string]`$Url,[System.Diagnostics.Process]`$Process,[int]`$Seconds) { return }`r`n`$backend = `$null"
     $probe = [regex]::Replace($source,$pattern,$replacement,1)
@@ -57,20 +63,11 @@ try {
     Write-Output "PASS: demo backend remained alive on port $backendPort after launcher return."
 } finally {
     $env:TASK_BOOTSTRAP_PASSWORD = $savedPassword
-    if ($statePath -and (Test-Path -LiteralPath $statePath)) {
-        $cleanupState = Get-Content -LiteralPath $statePath -Raw | ConvertFrom-Json
-        try {
+    try {
+        if ($statePath -and (Test-Path -LiteralPath $statePath)) {
             & (Join-Path $scriptsRoot 'stop-demo.ps1') -StateFile $statePath
-        } catch {
-            Write-Warning $_
-            foreach ($entry in @($cleanupState.frontend,$cleanupState.backend)) {
-                $process = Get-Process -Id ([int]$entry.pid) -ErrorAction SilentlyContinue
-                if ($null -ne $process -and $process.Path -ieq $entry.executable) {
-                    Stop-Process -Id $process.Id -Force
-                }
-            }
-            Remove-Item -LiteralPath $statePath -Force -ErrorAction SilentlyContinue
         }
+    } finally {
+        if (Test-Path -LiteralPath $probePath) { Remove-Item -LiteralPath $probePath -Force }
     }
-    if (Test-Path -LiteralPath $probePath) { Remove-Item -LiteralPath $probePath -Force }
 }

@@ -1,0 +1,60 @@
+{
+  "verifiedAt": "2026-10-26T10:30:05.2119440+08:00",
+  "scope": "isolated local H2 demo; synthetic accounts; no production acceptance",
+  "backendUrl": "http://127.0.0.1:18081",
+  "frontendUrl": "http://127.0.0.1:15174",
+  "javaVersion": "21.0.2",
+  "nodeVersion": "22.23.4",
+  "checks": {
+    "proxyCsrf": true,
+    "backendHealth": "UP",
+    "mustChangePassword": true,
+    "sessionMe": true,
+    "logout": true,
+    "employeeLogin": true,
+    "frontendStatus": 200
+  },
+  "frontendChecks": {
+    "typecheck": "PASS",
+    "vitestPassed": 20,
+    "eslint": "PASS",
+    "productionBuild": "PASS",
+    "buildWarning": "Existing main chunk exceeds 500kB; no new warning introduced.",
+    "runtime": "Node22.23.4"
+  },
+  "regressionChecks": {
+    "windowsPowerShellVersionProbe": "PASS",
+    "freshDatabaseEnvironmentAndLogin": "PowerShell7 and WindowsPowerShell5.1: PASS; includes inherited config removal and exact caller env restore",
+    "processIdentity": "PowerShell7 and WindowsPowerShell5.1: 6 cases each PASS",
+    "configurationProbe": "PASS; real backend remained alive and safe cleanup succeeded"
+  },
+  "browserChecks": {
+    "verifiedAt": "2026-10-26T02:29:33.891Z",
+    "browser": "Chromium 1228 via cached Playwright",
+    "liveApi": true,
+    "checks": [
+      {
+        "check": "desktop login page",
+        "passed": true
+      },
+      {
+        "check": "login 375px no horizontal overflow",
+        "passed": true
+      },
+      {
+        "check": "login 768px no horizontal overflow",
+        "passed": true
+      },
+      {
+        "check": "real employee login reaches required password change",
+        "passed": true
+      },
+      {
+        "check": "real logout returns to login page",
+        "passed": true
+      }
+    ],
+    "pageErrors": []
+  },
+  "productionAcceptance": false
+}
