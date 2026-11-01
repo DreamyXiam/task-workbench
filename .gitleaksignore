@@ -1,0 +1,11 @@
+# Historical, deterministic synthetic test credentials; do not add broad path or rule exclusions.
+621bf86545b4f974871440763f855ababc869f39:scripts/tests/start-demo-environment.ps1:generic-api-key:16
+153905b94aba652c17c0ee755cb915a939a7cae7:backend/src/test/java/cn/workbench/ExportControllerTest.java:generic-api-key:9
+153905b94aba652c17c0ee755cb915a939a7cae7:backend/src/test/java/cn/workbench/WorkflowTest.java:generic-api-key:3
+153905b94aba652c17c0ee755cb915a939a7cae7:backend/src/test/java/cn/workbench/CalendarSimulationTest.java:generic-api-key:12
+153905b94aba652c17c0ee755cb915a939a7cae7:backend/src/test/java/cn/workbench/ReviewRegressionTest.java:generic-api-key:17
+153905b94aba652c17c0ee755cb915a939a7cae7:backend/src/test/java/cn/workbench/WecomDeliveryTest.java:generic-api-key:15
+153905b94aba652c17c0ee755cb915a939a7cae7:backend/src/test/java/cn/workbench/OrganizationChangesTest.java:generic-api-key:13
+153905b94aba652c17c0ee755cb915a939a7cae7:backend/src/test/java/cn/workbench/OrganizationChangesTest.java:generic-api-key:37
+153905b94aba652c17c0ee755cb915a939a7cae7:backend/src/test/java/cn/workbench/HttpSecurityTest.java:generic-api-key:3
+153905b94aba652c17c0ee755cb915a939a7cae7:backend/src/test/java/cn/workbench/MatchingEngineTest.java:generic-api-key:117
