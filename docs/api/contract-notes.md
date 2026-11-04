@@ -26,4 +26,6 @@ Department heads and employees cannot view or act on draft task assignments befo
 
 KPI raw/formal input snapshots are immutable; heads receive only their authorized score data, never company-wide raw input snapshots. Ordinary admin infrastructure access does not grant score/task read access. Personal KPI remains disabled and candidate weights/calendars never change official30/25/20/10/15historical results.
 
+New formal KPI runs and calendar simulations exclude sub-tasks of unconfirmed DRAFT tasks from their input snapshots and denominators. Confirmed tasks remain eligible under the existing period and cancellation rules; existing historical snapshots are not rewritten.
+
 Remaining contract gates include complete typed request/error schemas, field-level negative cases, exact MySQL migration/concurrency, production scanner/quarantine, real-browser auth/download/WeChat, and the release acceptance matrix. Earlier13live-MySQL/35browser-fixture results are explicitly bound to their earlier build scope, not new routes.
