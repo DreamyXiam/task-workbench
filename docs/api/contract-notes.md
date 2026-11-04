@@ -16,6 +16,8 @@ Task code is RW-companyCode-YYYYMMDD-sequence. Main lifecycle uses DRAFT, IN_PRO
 
 Cross-company collaboration requests belonging to a DRAFT task are not exposed to the receiving company and cannot be accepted or rejected until the initiating leader confirms assignment. After confirmation, a pending request exposes only its existing minimal request fields; a formal collaboration subtask is created on acceptance. Requests on completed or cancelled tasks offer no actions.
 
+Department heads and employees cannot view or act on draft task assignments before a leader confirms assignment. Authorized leadership retains draft access; after confirmation, the usual company, department and assignee checks apply.
+
 `POST /notifications/archive` archives only read notifications currently visible to the authenticated user in the selected company and authorized task scope. Read notifications outside that scope remain available in their appropriate context.
 
 `GET /notifications` accepts optional Boolean `read` alongside `page` and `pageSize`. It filters read/unread records after applying the authenticated user, company and task authorization scope, before calculating pagination totals. Omitting `read` returns both states.
