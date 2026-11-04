@@ -9,6 +9,14 @@ import org.junit.jupiter.api.*;import org.springframework.boot.test.context.Spri
 
  @Autowired TaskService tasks;@Autowired Records records;@Autowired org.springframework.security.crypto.password.PasswordEncoder passwords;
  @Autowired org.springframework.jdbc.core.JdbcTemplate jdbc;
+ @Test @org.springframework.transaction.annotation.Transactional void draftCrossCompanyInvitationCannotBeGuessedOrAccepted()throws Exception{
+  var other=session("demo.other");var actor=new Policy.Actor(2,"COMPANY_LEADER",1,null,2);
+  var task=tasks.create(actor,Records.map("title","草稿协办","content","测试","companyId",1,"hostDeptId",3,"collaboratorDeptIds",java.util.List.of(5),"deadline",java.time.Instant.now().plusSeconds(3600).toString()));
+  var request=records.children(Jsons.number(task.get("id")),"COLLABORATION_REQUEST").getFirst();
+  mvc.perform(get("/api/v1/collaborations").session(other)).andExpect(status().isOk()).andExpect(jsonPath("$.data.length()").value(0));
+  mvc.perform(post("/api/v1/collaborations/"+request.get("id")+"/accept").session(other).with(csrf()).header("Idempotency-Key",java.util.UUID.randomUUID().toString()).contentType("application/json").content("{}")).andExpect(status().isConflict());
+  mvc.perform(get("/api/v1/tasks/"+task.get("id")).session(other)).andExpect(status().isForbidden());
+ }
  @Test @org.springframework.transaction.annotation.Transactional void archiveOnlyVisibleReadNotifications()throws Exception{
   var employee=session("demo.employee");
   var hidden=tasks.create(new Policy.Actor(2,"COMPANY_LEADER",1,null,2),Records.map("title","不可见任务","content","测试","companyId",1,"hostDeptId",3,"collaboratorDeptIds",java.util.List.of(),"deadline",java.time.Instant.now().plusSeconds(3600).toString()));

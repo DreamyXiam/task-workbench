@@ -14,6 +14,8 @@ New checkpoint routes:
 
 Task code is RW-companyCode-YYYYMMDD-sequence. Main lifecycle uses DRAFT, IN_PROGRESS, PENDING_ACCEPTANCE, PENDING_ACCEPTANCE_WITH_GAP, REWORK, COMPLETED, CANCELLED; overdue is an independent historical flag. Subtask states and actual allowedActions come from TaskService. Withdrawal before final acceptance invalidates host summary; rework requires fresh result versions and host summary before acceptance. Gap closure does not fabricate acceptance for missing departments.
 
+Cross-company collaboration requests belonging to a DRAFT task are not exposed to the receiving company and cannot be accepted or rejected until the initiating leader confirms assignment. After confirmation, a pending request exposes only its existing minimal request fields; a formal collaboration subtask is created on acceptance. Requests on completed or cancelled tasks offer no actions.
+
 `POST /notifications/archive` archives only read notifications currently visible to the authenticated user in the selected company and authorized task scope. Read notifications outside that scope remain available in their appropriate context.
 
 `GET /notifications` accepts optional Boolean `read` alongside `page` and `pageSize`. It filters read/unread records after applying the authenticated user, company and task authorization scope, before calculating pagination totals. Omitting `read` returns both states.
