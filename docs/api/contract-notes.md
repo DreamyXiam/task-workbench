@@ -14,6 +14,8 @@ New checkpoint routes:
 
 Task code is RW-companyCode-YYYYMMDD-sequence. Main lifecycle uses DRAFT, IN_PROGRESS, PENDING_ACCEPTANCE, PENDING_ACCEPTANCE_WITH_GAP, REWORK, COMPLETED, CANCELLED; overdue is an independent historical flag. Subtask states and actual allowedActions come from TaskService. Withdrawal before final acceptance invalidates host summary; rework requires fresh result versions and host summary before acceptance. Gap closure does not fabricate acceptance for missing departments.
 
+`GET /tasks` and `GET /sub-tasks/mine` accept `page`, `pageSize`, `status`, `keyword`, `priority`, and `overdue`. Filtering is applied only after the actor's authorized scope is established and before pagination; keyword matches task title or code case-insensitively. `IN_PROGRESS` also includes `REWORK`, and task `PENDING_ACCEPTANCE` includes `PENDING_ACCEPTANCE_WITH_GAP`. `overdue=true` includes historical overdue records and unfinished records past their deadline. The subtask list includes its parent task's title, code and priority while retaining the subtask status and deadline.
+
 KPI raw/formal input snapshots are immutable; heads receive only their authorized score data, never company-wide raw input snapshots. Ordinary admin infrastructure access does not grant score/task read access. Personal KPI remains disabled and candidate weights/calendars never change official30/25/20/10/15historical results.
 
 Remaining contract gates include complete typed request/error schemas, field-level negative cases, exact MySQL migration/concurrency, production scanner/quarantine, real-browser auth/download/WeChat, and the release acceptance matrix. Earlier13live-MySQL/35browser-fixture results are explicitly bound to their earlier build scope, not new routes.

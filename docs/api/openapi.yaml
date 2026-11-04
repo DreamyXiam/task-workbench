@@ -9381,7 +9381,11 @@
               "format": "int64",
               "default": 20
             }
-          }
+          },
+          { "name": "status", "in": "query", "required": false, "schema": { "type": "string" } },
+          { "name": "keyword", "in": "query", "required": false, "schema": { "type": "string" } },
+          { "name": "priority", "in": "query", "required": false, "schema": { "type": "string" } },
+          { "name": "overdue", "in": "query", "required": false, "schema": { "type": "boolean" } }
         ]
       }
     },
@@ -10587,7 +10591,9 @@
             "schema": {
               "type": "string"
             }
-          }
+          },
+          { "name": "priority", "in": "query", "required": false, "schema": { "type": "string" } },
+          { "name": "overdue", "in": "query", "required": false, "schema": { "type": "boolean" } }
         ]
       },
       "post": {
