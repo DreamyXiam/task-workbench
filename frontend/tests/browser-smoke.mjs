@@ -7,13 +7,14 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright')
 const browser=await chromium.launch({headless:true,executablePath:process.env.PLAYWRIGHT_CHROMIUM||undefined})
 const context=await browser.newContext({viewport:{width:1440,height:1000},locale:'zh-CN'})
 const page=await context.newPage(),issues=[],writes=[],checks=[]
-let loggedIn=false,role='COMPANY_LEADER'
+let loggedIn=false,role='COMPANY_LEADER',expireTasks=false
 const me=()=>({id:'fixture-user',name:'测试人员',accountSuffix:'0026',role,companyId:'fixture-company',deptId:'fixture-dept',mustChangePassword:false,totpRequired:false,totpVerified:true,scopes:[{id:'leader',role:'COMPANY_LEADER',companyId:'fixture-company'},{id:'admin',role:'ADMIN',companyId:'fixture-company'}]})
 const task={id:'fixture-task',code:'RW-2026-001',title:'完成年度重点项目验收准备',content:'明确验收材料、核对交付成果，并按计划完成跨部门资料汇总。',companyId:'fixture-company',companyName:'测试公司',hostDeptId:'fixture-dept',hostDeptName:'综合管理部',priority:'HIGH',status:'IN_PROGRESS',deadline:'2026-12-31T18:00:00+08:00',version:3,allowedActions:['summarize','deadline','urge','comment','upload'],subTasks:[{id:'fixture-sub',deptId:'fixture-dept',deptName:'综合管理部',role:'HOST',ownerName:'测试人员',percent:45,status:'IN_PROGRESS',version:2,allowedActions:['progress','submit','extend','transfer']}],comments:[],progress:[],timeline:[{id:'event1',actionName:'确认分配',operatorName:'测试人员',createdAt:'2026-10-24T10:00:00+08:00',description:'已确认责任部门'}],attachments:[],deadlineRequests:[],collaborationRequests:[]}
 const companies=[{id:'fixture-company',name:'测试公司',code:'TEST',enabled:true}]
 const departments=[{id:'fixture-dept',name:'综合管理部',companyId:'fixture-company'}]
 page.on('pageerror',e=>issues.push(e.message))
 await page.route('**/api/v1/**',async route=>{const req=route.request(),url=new URL(req.url()),path=url.pathname.replace('/api/v1',''),method=req.method();let data={};if(method!=='GET'){writes.push({path,headers:req.headers(),body:req.postDataJSON()});if(path==='/auth/login')loggedIn=true;if(path==='/auth/logout')loggedIn=false;if(path==='/auth/context')role=req.postDataJSON().scopeId==='admin'?'ADMIN':'COMPANY_LEADER';if(path.endsWith('/comments'))task.comments.push({id:'comment1',authorName:'测试人员',content:req.postDataJSON().content,createdAt:new Date().toISOString()})}
+ if(expireTasks&&path==='/tasks'){loggedIn=false;await route.fulfill({status:401,json:{code:'UNAUTHENTICATED',message:'请登录',traceId:'fixture-expired'}});return}
  if(path==='/auth/csrf')data={token:'fixture-csrf',headerName:'X-CSRF-TOKEN'}
  else if(path==='/auth/me'){if(!loggedIn){await route.fulfill({status:401,json:{code:'UNAUTHENTICATED',message:'请登录',traceId:'fixture-auth'}});return}data=me()}
  else if(path==='/stats/overview')data={total:12,inProgress:7,pendingAcceptance:3,overdue:2,completed:2,recentTasks:[task]}
@@ -38,6 +39,8 @@ await page.route('**/api/v1/**',async route=>{const req=route.request(),url=new 
 })
 try{
  await page.goto('http://127.0.0.1:5173')
+ await page.getByRole('heading',{name:'登录工作台',exact:true}).waitFor()
+ assert.equal(await page.getByText('会话已失效，请重新登录').count(),0,'first visit must not report an expired session')
  await page.getByPlaceholder('请输入工号').fill('fixture0026')
  await page.getByPlaceholder('请输入密码').fill('fixture-password')
  assert.equal(await page.locator('.watermark').count(),0,'login has no watermark')
@@ -76,6 +79,15 @@ try{
  await page.getByRole('button',{name:'编辑',exact:true}).click()
  await page.getByText('岗位与组织范围',{exact:true}).waitFor()
  await page.getByRole('button',{name:'返回',exact:true}).click()
+ expireTasks=true
+ await page.goto('http://127.0.0.1:5173/#/tasks')
+ await page.getByRole('heading',{name:'登录工作台',exact:true}).waitFor()
+ await page.getByText('会话已失效，请重新登录').waitFor()
+ expireTasks=false
+ await page.getByPlaceholder('请输入工号').fill('fixture0026')
+ await page.getByPlaceholder('请输入密码').fill('fixture-password')
+ await page.getByRole('button',{name:'登录工作台',exact:true}).click()
+ await page.getByRole('heading',{name:'管理工作台'}).waitFor()
  await page.locator('.profile').hover()
  await page.getByText('退出登录',{exact:true}).click()
  await page.getByRole('heading',{name:'登录工作台'}).waitFor()
