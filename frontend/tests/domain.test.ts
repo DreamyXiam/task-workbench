@@ -1,11 +1,19 @@
 import { describe, expect, it, beforeEach } from 'vitest'
-import { allowed, validateAssignment, kpiDisplayScore, canReadKpiScores, reworkDepartmentOptions } from '../src/domain'
+import { allowed, validateAssignment, kpiDisplayScore, canReadKpiScores, reworkDepartmentOptions, overdue } from '../src/domain'
 import { ApiError, api, transport, resetSessionBoundary, sessionEpoch, onSessionExpired } from '../src/api'
 import { createPinia, setActivePinia } from 'pinia'
 import { useAuth } from '../src/stores/auth'
 const envelope = (data: unknown) => ({ data: { code:'OK', data, message:'', traceId:'t1' }, status:200, statusText:'OK', headers:{}, config: {} as any })
 beforeEach(() => { setActivePinia(createPinia()); resetSessionBoundary() })
 describe('authorization display policy', () => {
+  it('uses the submission or summary time for overdue badges and preserves historical lateness', () => {
+    const deadline='2020-01-10T00:00:00Z',onTime='2020-01-09T00:00:00Z',late='2020-01-11T00:00:00Z'
+    expect(overdue({status:'SUBMITTED',deadline,submittedAt:onTime})).toBe(false)
+    expect(overdue({status:'SUBMITTED',deadline,submittedAt:late})).toBe(true)
+    expect(overdue({status:'PENDING_ACCEPTANCE',deadline,summarizedAt:onTime})).toBe(false)
+    expect(overdue({status:'IN_PROGRESS',deadline})).toBe(true)
+    expect(overdue({status:'ACCEPTED',deadline,everOverdue:true})).toBe(true)
+  })
   it('does not infer permission from a role or a missing action list', () => { expect(allowed({role:'ADMIN'}, 'accept')).toBe(false); expect(allowed({allowedActions:['accept']},'cancel')).toBe(false); expect(allowed({allowedActions:['accept']},'accept')).toBe(true) })
   it('requires one host, zero to two distinct collaborators excluding host', () => { expect(validateAssignment('',[])).toBeTruthy(); expect(validateAssignment('a',['b','c','d'])).toBeTruthy(); expect(validateAssignment('a',['a'])).toBeTruthy(); expect(validateAssignment('a',['b','b'])).toBeTruthy(); expect(validateAssignment('a',['b','c'])).toBe('') })
 })

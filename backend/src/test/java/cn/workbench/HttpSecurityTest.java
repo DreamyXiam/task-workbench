@@ -9,6 +9,29 @@ import org.junit.jupiter.api.*;import org.springframework.boot.test.context.Spri
 
  @Autowired TaskService tasks;@Autowired Records records;@Autowired org.springframework.security.crypto.password.PasswordEncoder passwords;
  @Autowired org.springframework.jdbc.core.JdbcTemplate jdbc;
+ @Test @org.springframework.transaction.annotation.Transactional void departmentStatsExcludeDraftAssignmentsAndPreserveOverdueFacts()throws Exception{
+  var head=session("demo.head");var actor=new Policy.Actor(2,"COMPANY_LEADER",1,null,2);
+  var task=tasks.create(actor,Records.map("title","部门统计草稿","content","测试","companyId",1,"hostDeptId",3,"collaboratorDeptIds",java.util.List.of(),"deadline",java.time.Instant.now().plusSeconds(3600).toString()));
+  long taskId=Jsons.number(task.get("id"));
+  mvc.perform(get("/api/v1/stats/dept").session(head)).andExpect(status().isOk()).andExpect(jsonPath("$.data[0].total").value(0));
+  tasks.taskAction(actor,taskId,"confirm-assign",java.util.Map.of());
+  var sub=records.lock(Jsons.number(records.children(taskId,"SUB_TASK").getFirst().get("id")));sub.put("deadline",java.time.Instant.now().minusSeconds(60).toString());sub.put("submittedAt",java.time.Instant.now().minusSeconds(120).toString());sub.put("status","ACCEPTED");records.save(sub);
+  mvc.perform(get("/api/v1/stats/dept").session(head)).andExpect(status().isOk()).andExpect(jsonPath("$.data[0].total").value(1)).andExpect(jsonPath("$.data[0].completed").value(1)).andExpect(jsonPath("$.data[0].overdue").value(0));
+  mvc.perform(get("/api/v1/sub-tasks/mine").session(head).param("overdue","true")).andExpect(status().isOk()).andExpect(jsonPath("$.data.total").value(0));
+  sub=records.lock(Jsons.number(sub.get("id")));sub.put("everOverdue",true);records.save(sub);
+  mvc.perform(get("/api/v1/stats/dept").session(head)).andExpect(status().isOk()).andExpect(jsonPath("$.data[0].overdue").value(1));
+  mvc.perform(get("/api/v1/sub-tasks/mine").session(head).param("overdue","true")).andExpect(status().isOk()).andExpect(jsonPath("$.data.total").value(1));
+ }
+ @Test void statsOverdueUsesSubmissionAndSummaryTimes(){
+  String due=java.time.Instant.now().minusSeconds(60).toString(),onTime=java.time.Instant.now().minusSeconds(120).toString(),late=java.time.Instant.now().minusSeconds(30).toString();
+  assertThat(StatsController.overdue(Records.map("status","SUBMITTED","deadline",due,"submittedAt",onTime,"everOverdue",false))).isFalse();
+  assertThat(StatsController.overdue(Records.map("status","SUBMITTED","deadline",due,"submittedAt",late,"everOverdue",false))).isTrue();
+  assertThat(StatsController.overdue(Records.map("status","PENDING_ACCEPTANCE","deadline",due,"summarizedAt",onTime,"everOverdue",false))).isFalse();
+  assertThat(StatsController.overdue(Records.map("status","IN_PROGRESS","deadline",due,"everOverdue",false))).isTrue();
+  assertThat(StatsController.overdue(Records.map("status","ACCEPTED","deadline",due,"everOverdue",false))).isFalse();
+  assertThat(StatsController.overdue(Records.map("status","ACCEPTED","deadline",due,"submittedAt",late,"everOverdue",false))).isTrue();
+  assertThat(StatsController.overdue(Records.map("status","ACCEPTED","deadline",due,"everOverdue",true))).isTrue();
+ }
  @Test @org.springframework.transaction.annotation.Transactional void draftAssignmentIsHiddenFromDepartmentUntilConfirmed()throws Exception{
   var head=session("demo.head");var actor=new Policy.Actor(2,"COMPANY_LEADER",1,null,2);
   var task=tasks.create(actor,Records.map("title","未确认草稿访问测试","content","草稿内容","companyId",1,"hostDeptId",3,"collaboratorDeptIds",java.util.List.of(),"deadline",java.time.Instant.now().plusSeconds(3600).toString()));

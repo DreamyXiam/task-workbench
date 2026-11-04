@@ -10,7 +10,7 @@ export function validateAssignment(host:string,collaborators:string[]):string { 
 export const listItems=(data:Row[]|Page):Row[] => Array.isArray(data)?data:data?.items ?? []
 export const display=(value:unknown):string => value==null||value===''?'—': typeof value==='object'?JSON.stringify(value):String(value)
 export const date=(value:unknown):string=>value?new Intl.DateTimeFormat('zh-CN',{timeZone:'Asia/Shanghai',dateStyle:'medium',timeStyle:'short'}).format(new Date(String(value))):'—'
-export const overdue=(row:Row):boolean=>!!row.everOverdue || (!!row.deadline && new Date(row.deadline).getTime()<Date.now()&&!['COMPLETED','ACCEPTED','CANCELLED'].includes(row.status))
+export const overdue=(row:Row):boolean=>{if(row.everOverdue)return true;if(!row.deadline)return false;const deadline=new Date(row.deadline).getTime(),completed=row.submittedAt??row.summarizedAt;if(completed)return new Date(completed).getTime()>deadline;return !['COMPLETED','ACCEPTED','CANCELLED'].includes(row.status)&&deadline<Date.now()}
 
 export const kpiDisplayScore=(row:Row):number|null=>row.finalScore??row.adjustedScore??row.rawScore??row.score??null
 export const canReadKpiScores=(role:string):boolean=>['GROUP_LEADER','DIVISION_LEADER','COMPANY_LEADER','DEPT_HEAD'].includes(role)
