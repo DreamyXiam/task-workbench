@@ -8329,6 +8329,13 @@
               "format": "int64",
               "default": 20
             }
+          },
+          {
+            "name": "read",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "boolean" },
+            "description": "Filter authorized notifications by read state before pagination."
           }
         ]
       }
