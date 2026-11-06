@@ -5,7 +5,7 @@ import assert from 'node:assert/strict'
 const require=createRequire(import.meta.url)
 const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright')
 const browser=await chromium.launch({headless:true,executablePath:process.env.PLAYWRIGHT_CHROMIUM||undefined})
-const context=await browser.newContext({viewport:{width:1440,height:1000},locale:'zh-CN'})
+const context=await browser.newContext({viewport:{width:1440,height:1000},locale:'zh-CN',colorScheme:'light'})
 const page=await context.newPage(),issues=[],writes=[],checks=[]
 let loggedIn=false,role='COMPANY_LEADER',expireTasks=false,adminReauthRequired=false,adminReauthVerified=false,adminCompanySaves=0
 const me=()=>({id:'fixture-user',name:'测试人员',accountSuffix:'0026',role,companyId:role==='GROUP_LEADER'?null:'fixture-company',deptId:role==='GROUP_LEADER'?null:'fixture-dept',mustChangePassword:false,totpRequired:false,totpVerified:true,scopes:[{id:'leader',role:'COMPANY_LEADER',companyId:'fixture-company'},{id:'admin',role:'ADMIN',companyId:'fixture-company'}]})
@@ -49,6 +49,26 @@ try{
  await page.getByRole('button',{name:'登录工作台',exact:true}).click()
  await page.getByRole('heading',{name:'领导工作概览'}).waitFor()
  assert.equal(await page.locator('.watermark').count(),1,'authenticated view has watermark')
+ await page.getByRole('button',{name:'切换为深色模式'}).click()
+ assert.equal(await page.evaluate(()=>document.documentElement.dataset.theme),'dark','dark theme applies')
+ await page.reload()
+ await page.getByRole('heading',{name:'领导工作概览'}).waitFor()
+ assert.equal(await page.evaluate(()=>document.documentElement.dataset.theme),'dark','theme persists after reload')
+ await page.getByRole('button',{name:'切换为浅色模式'}).click()
+ await page.getByRole('button',{name:'收起侧边栏'}).click()
+ assert.equal(await page.locator('.app-layout.sidebar-collapsed').count(),1,'sidebar collapses')
+ await page.reload()
+ await page.getByRole('heading',{name:'领导工作概览'}).waitFor()
+ assert.equal(await page.locator('.app-layout.sidebar-collapsed').count(),1,'sidebar preference persists')
+ await page.getByRole('button',{name:'展开侧边栏'}).click()
+ await page.keyboard.press('Control+k')
+ const command=page.getByRole('dialog',{name:'快速导航'})
+ await command.getByPlaceholder('搜索页面').fill('任务中心')
+ await command.getByRole('button',{name:'任务中心',exact:true}).click()
+ await page.waitForURL('**/#/tasks')
+ await command.waitFor({state:'hidden'})
+ for(const theme of ['light','dark']){
+  if(theme==='dark')await page.getByRole('button',{name:'切换为深色模式'}).click()
  for(const width of [375,390,768,1024,1440]){
   await page.setViewportSize({width,height:960})
   for(const path of ['/','/tasks','/tasks/new','/tasks/fixture-task','/kpi','/reports','/notifications','/organization-changes','/calendar-simulation']){
@@ -57,8 +77,9 @@ try{
    await page.waitForTimeout(200)
    const size=await page.evaluate(()=>({scroll:document.documentElement.scrollWidth,width:window.innerWidth}))
    assert.ok(size.scroll<=size.width,`overflow ${width} ${path}: ${JSON.stringify(size)}`)
-   checks.push({width,path,overflow:false});if(process.env.QA_SCREENSHOTS&&path==='/'&&[375,1440].includes(width)){await mkdir('tests/results',{recursive:true});await page.screenshot({path:`tests/results/dashboard-${width}.png`,fullPage:true})}
+   checks.push({theme,width,path,overflow:false});if(process.env.QA_SCREENSHOTS&&path==='/'&&[375,1440].includes(width)){await mkdir('tests/results',{recursive:true});await page.screenshot({path:`tests/results/dashboard-${theme}-${width}.png`,fullPage:true})}
   }
+ }
  }
  await page.setViewportSize({width:1440,height:1000})
  await page.goto('http://127.0.0.1:5173/#/tasks/fixture-task')
@@ -76,6 +97,19 @@ try{
  await page.getByRole('button',{name:/公司领导/}).hover()
  await page.getByText('系统管理员 · fixture-company',{exact:true}).click()
  await page.getByRole('heading',{name:'管理工作台'}).waitFor()
+ await page.getByRole('button',{name:'切换为浅色模式'}).click()
+ for(const theme of ['light','dark']){
+  if(theme==='dark')await page.getByRole('button',{name:'切换为深色模式'}).click()
+  for(const width of [375,768,1440])for(const resource of ['companies','departments','users','tags','rules','notification-channels','audit-logs']){
+   await page.setViewportSize({width,height:960})
+   await page.goto('http://127.0.0.1:5173/#/admin/'+resource)
+   await page.locator('.main-content h1').first().waitFor()
+   const size=await page.evaluate(()=>({scroll:document.documentElement.scrollWidth,width:window.innerWidth}))
+   assert.ok(size.scroll<=size.width,`admin overflow ${theme} ${width} ${resource}: ${JSON.stringify(size)}`)
+   checks.push({theme,width,path:'/admin/'+resource,overflow:false})
+  }
+ }
+ await page.setViewportSize({width:1440,height:1000})
  await page.goto('http://127.0.0.1:5173/#/admin/users')
  await page.getByRole('heading',{name:'用户与岗位'}).waitFor()
  await page.getByRole('button',{name:'编辑',exact:true}).click()
