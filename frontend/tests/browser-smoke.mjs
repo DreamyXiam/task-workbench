@@ -7,8 +7,8 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright')
 const browser=await chromium.launch({headless:true,executablePath:process.env.PLAYWRIGHT_CHROMIUM||undefined})
 const context=await browser.newContext({viewport:{width:1440,height:1000},locale:'zh-CN',colorScheme:'light'})
 const page=await context.newPage(),issues=[],writes=[],checks=[]
-let loggedIn=false,role='COMPANY_LEADER',expireTasks=false,adminReauthRequired=false,adminReauthVerified=false,adminCompanySaves=0
-const me=()=>({id:'fixture-user',name:'测试人员',accountSuffix:'0026',role,companyId:role==='GROUP_LEADER'?null:'fixture-company',deptId:role==='GROUP_LEADER'?null:'fixture-dept',mustChangePassword:false,totpRequired:false,totpVerified:true,scopes:[{id:'leader',role:'COMPANY_LEADER',companyId:'fixture-company'},{id:'admin',role:'ADMIN',companyId:'fixture-company'}]})
+let loggedIn=false,role='COMPANY_LEADER',expireTasks=false,adminReauthRequired=false,adminReauthVerified=false,adminCompanySaves=0,adminGlobal=false
+const me=()=>({id:'fixture-user',name:'测试人员',accountSuffix:'0026',role,companyId:role==='GROUP_LEADER'||adminGlobal?null:'fixture-company',deptId:role==='GROUP_LEADER'?null:'fixture-dept',mustChangePassword:false,totpRequired:false,totpVerified:true,scopes:[{id:'leader',role:'COMPANY_LEADER',companyId:'fixture-company'},{id:'admin',role:'ADMIN',companyId:'fixture-company'}]})
 const task={id:'fixture-task',code:'RW-2026-001',title:'完成年度重点项目验收准备',content:'明确验收材料、核对交付成果，并按计划完成跨部门资料汇总。',companyId:'fixture-company',companyName:'测试公司',hostDeptId:'fixture-dept',hostDeptName:'综合管理部',priority:'HIGH',status:'IN_PROGRESS',deadline:'2026-12-31T18:00:00+08:00',version:3,allowedActions:['summarize','deadline','urge','comment','upload'],subTasks:[{id:'fixture-sub',deptId:'fixture-dept',deptName:'综合管理部',role:'HOST',ownerName:'测试人员',percent:45,status:'IN_PROGRESS',version:2,allowedActions:['progress','submit','extend','transfer']}],comments:[],progress:[],timeline:[{id:'event1',actionName:'确认分配',operatorName:'测试人员',createdAt:'2026-10-24T10:00:00+08:00',description:'已确认责任部门'}],attachments:[],deadlineRequests:[],collaborationRequests:[]}
 const companies=[{id:'fixture-company',name:'测试公司',companyCode:'TEST',enabled:true}]
 const departments=[{id:'fixture-dept',name:'综合管理部',companyId:'fixture-company',companyName:'测试公司'},{id:'fixture-other-dept',name:'第二部门',companyId:'fixture-other-company',companyName:'第二公司'}]
@@ -160,6 +160,29 @@ try{
  await page.getByText('新建关联公司',{exact:true}).waitFor()
  await departmentDrawer.getByRole('button',{name:'返回',exact:true}).click()
  adminReauthRequired=false
+ adminGlobal=true
+ await page.reload()
+ await page.locator('.app-layout').waitFor()
+ await page.goto('http://127.0.0.1:5173/#/admin/users')
+ await page.getByRole('button',{name:'＋ 新增用户与岗位'}).click()
+ const newUser=page.getByRole('dialog',{name:'新增用户与岗位'})
+ await newUser.locator('.el-form-item').filter({hasText:'工号'}).locator('input').fill('global-fixture')
+ await newUser.locator('.el-form-item').filter({hasText:'姓名'}).locator('input').fill('测试管理员')
+ await newUser.locator('.el-form-item').filter({hasText:'初始 / 重置密码'}).locator('input').fill('Fixture-Password123')
+ await newUser.getByRole('button',{name:'＋ 添加岗位'}).click()
+ const scope=newUser.locator('.scope-editor').first()
+ await scope.locator('.el-form-item').filter({hasText:'角色'}).locator('.el-select').click()
+ await page.getByRole('option',{name:'系统管理员',exact:true}).click()
+ await scope.locator('.el-form-item').filter({hasText:'公司范围'}).locator('.el-select').click()
+ await page.getByRole('option',{name:'全局（不限定公司）',exact:true}).click()
+ assert.equal(await scope.locator('.el-form-item').filter({hasText:'部门'}).locator('input').isDisabled(),true,'global scope has no department')
+ await newUser.getByRole('button',{name:'保存配置'}).click()
+ await newUser.waitFor({state:'hidden'})
+ const globalWrite=writes.findLast(w=>w.path==='/admin/users')
+ assert.equal(globalWrite.body.scopes[0].role,'ADMIN')
+ assert.equal(globalWrite.body.scopes[0].companyId,null,'global scope uses null company')
+ assert.equal(globalWrite.body.scopes[0].deptId,null,'global scope uses null department')
+ adminGlobal=false
  expireTasks=true
  await page.goto('http://127.0.0.1:5173/#/tasks')
  await page.getByRole('heading',{name:'登录工作台',exact:true}).waitFor()
