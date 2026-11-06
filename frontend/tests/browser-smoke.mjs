@@ -8,13 +8,13 @@ const browser=await chromium.launch({headless:true,executablePath:process.env.PL
 const context=await browser.newContext({viewport:{width:1440,height:1000},locale:'zh-CN'})
 const page=await context.newPage(),issues=[],writes=[],checks=[]
 let loggedIn=false,role='COMPANY_LEADER',expireTasks=false,adminReauthRequired=false,adminReauthVerified=false,adminCompanySaves=0
-const me=()=>({id:'fixture-user',name:'测试人员',accountSuffix:'0026',role,companyId:'fixture-company',deptId:'fixture-dept',mustChangePassword:false,totpRequired:false,totpVerified:true,scopes:[{id:'leader',role:'COMPANY_LEADER',companyId:'fixture-company'},{id:'admin',role:'ADMIN',companyId:'fixture-company'}]})
+const me=()=>({id:'fixture-user',name:'测试人员',accountSuffix:'0026',role,companyId:role==='GROUP_LEADER'?null:'fixture-company',deptId:role==='GROUP_LEADER'?null:'fixture-dept',mustChangePassword:false,totpRequired:false,totpVerified:true,scopes:[{id:'leader',role:'COMPANY_LEADER',companyId:'fixture-company'},{id:'admin',role:'ADMIN',companyId:'fixture-company'}]})
 const task={id:'fixture-task',code:'RW-2026-001',title:'完成年度重点项目验收准备',content:'明确验收材料、核对交付成果，并按计划完成跨部门资料汇总。',companyId:'fixture-company',companyName:'测试公司',hostDeptId:'fixture-dept',hostDeptName:'综合管理部',priority:'HIGH',status:'IN_PROGRESS',deadline:'2026-12-31T18:00:00+08:00',version:3,allowedActions:['summarize','deadline','urge','comment','upload'],subTasks:[{id:'fixture-sub',deptId:'fixture-dept',deptName:'综合管理部',role:'HOST',ownerName:'测试人员',percent:45,status:'IN_PROGRESS',version:2,allowedActions:['progress','submit','extend','transfer']}],comments:[],progress:[],timeline:[{id:'event1',actionName:'确认分配',operatorName:'测试人员',createdAt:'2026-10-24T10:00:00+08:00',description:'已确认责任部门'}],attachments:[],deadlineRequests:[],collaborationRequests:[]}
-const companies=[{id:'fixture-company',name:'测试公司',code:'TEST',enabled:true}]
-const departments=[{id:'fixture-dept',name:'综合管理部',companyId:'fixture-company'}]
+const companies=[{id:'fixture-company',name:'测试公司',companyCode:'TEST',enabled:true}]
+const departments=[{id:'fixture-dept',name:'综合管理部',companyId:'fixture-company',companyName:'测试公司'},{id:'fixture-other-dept',name:'第二部门',companyId:'fixture-other-company',companyName:'第二公司'}]
 page.on('pageerror',e=>issues.push(e.message))
 await page.route('**/api/v1/**',async route=>{const req=route.request(),url=new URL(req.url()),path=url.pathname.replace('/api/v1',''),method=req.method();let data={};if(method!=='GET'){writes.push({path,headers:req.headers(),body:req.postDataJSON()});if(path==='/auth/login')loggedIn=true;if(path==='/auth/logout')loggedIn=false;if(path==='/auth/context')role=req.postDataJSON().scopeId==='admin'?'ADMIN':'COMPANY_LEADER';if(path.endsWith('/comments'))task.comments.push({id:'comment1',authorName:'测试人员',content:req.postDataJSON().content,createdAt:new Date().toISOString()})}
- if(path==='/admin/companies'&&method==='POST'&&adminReauthRequired){if(!adminReauthVerified){await route.fulfill({status:403,json:{code:'FRESH_TOTP_REQUIRED',message:'请在五分钟内完成二次验证',traceId:'fixture'}});return}adminCompanySaves++}
+ if(path==='/admin/companies'&&method==='POST'&&adminReauthRequired){if(!adminReauthVerified){await route.fulfill({status:403,json:{code:'FRESH_TOTP_REQUIRED',message:'请在五分钟内完成二次验证',traceId:'fixture'}});return}adminCompanySaves++;companies.push({id:'fixture-new-company',name:'新建关联公司',companyCode:'FIXTURE',enabled:true})}
  if(path==='/auth/totp/verify'&&method==='POST'&&adminReauthRequired){if(req.postDataJSON().code!=='123456'){await route.fulfill({status:422,json:{code:'INVALID_TOTP',message:'验证码无效',traceId:'fixture'}});return}adminReauthVerified=true}
  if(expireTasks&&path==='/tasks'){loggedIn=false;await route.fulfill({status:401,json:{code:'UNAUTHENTICATED',message:'请登录',traceId:'fixture-expired'}});return}
  if(path==='/auth/csrf')data={token:'fixture-csrf',headerName:'X-CSRF-TOKEN'}
@@ -35,7 +35,7 @@ await page.route('**/api/v1/**',async route=>{const req=route.request(),url=new 
  else if(path==='/collaborations')data=[]
  else if(path==='/admin/companies')data=companies
  else if(path==='/admin/departments')data=departments
- else if(path==='/admin/users')data=[{...me(),account:'fixture0026',enabled:true}]
+ else if(path==='/admin/users')data=[{...me(),enabled:true,scopes:[{role:'ADMIN',companyId:'fixture-company',enabled:true},{role:'ADMIN',companyId:'fixture-company',enabled:false}]}]
  else if(path.startsWith('/admin/'))data=[]
  await route.fulfill({json:{code:'OK',message:'',data,traceId:'fixture-trace'}})
 })
@@ -80,7 +80,17 @@ try{
  await page.getByRole('heading',{name:'用户与岗位'}).waitFor()
  await page.getByRole('button',{name:'编辑',exact:true}).click()
  await page.getByText('岗位与组织范围',{exact:true}).waitFor()
- await page.getByRole('button',{name:'返回',exact:true}).click()
+ const userDrawer=page.getByRole('dialog',{name:'编辑用户与岗位'})
+ const accountInput=userDrawer.locator('.el-form-item').filter({hasText:'工号'}).locator('input')
+ assert.equal(await accountInput.isDisabled(),true,'existing account is read-only')
+ assert.ok((await accountInput.inputValue()).endsWith('0026'),'masked account suffix is shown')
+ assert.equal(await userDrawer.locator('.scope-editor').count(),1,'disabled historical scopes are not reactivated')
+ await userDrawer.getByRole('button',{name:'保存配置'}).click()
+ await userDrawer.waitFor({state:'hidden'})
+ const userWrite=writes.find(w=>w.path==='/admin/users/fixture-user')
+ assert.ok(userWrite,'existing user edit can be saved without full account')
+ assert.equal(userWrite.body.scopes,undefined,'unchanged scopes and appointment metadata are preserved')
+ assert.equal(userWrite.body.account,undefined,'masked account is not submitted')
  adminReauthRequired=true
  await page.goto('http://127.0.0.1:5173/#/admin/companies')
  await page.getByRole('button',{name:'＋ 新增公司'}).click()
@@ -102,6 +112,19 @@ try{
  await adminDrawer.getByRole('button',{name:'保存配置'}).click()
  await adminDrawer.waitFor({state:'hidden'})
  assert.equal(adminCompanySaves,1,'explicit retry saves once')
+ await page.getByText('FIXTURE',{exact:true}).waitFor()
+ await page.getByRole('row').filter({hasText:'新建关联公司'}).getByRole('button',{name:'编辑'}).click()
+ const editCompany=page.getByRole('dialog',{name:'编辑公司管理'})
+ const existingCode=editCompany.locator('.el-form-item').filter({hasText:'公司编码'}).locator('input')
+ assert.equal(await existingCode.inputValue(),'FIXTURE','existing company code is displayed')
+ assert.equal(await existingCode.isDisabled(),true,'unsupported code editing is disabled')
+ await editCompany.getByRole('button',{name:'返回',exact:true}).click()
+ await page.goto('http://127.0.0.1:5173/#/admin/departments')
+ await page.getByRole('button',{name:'＋ 新增部门'}).click()
+ const departmentDrawer=page.getByRole('dialog',{name:'新增部门管理'})
+ await departmentDrawer.locator('.el-form-item').filter({hasText:'所属公司'}).locator('.el-select').click()
+ await page.getByText('新建关联公司',{exact:true}).waitFor()
+ await departmentDrawer.getByRole('button',{name:'返回',exact:true}).click()
  adminReauthRequired=false
  expireTasks=true
  await page.goto('http://127.0.0.1:5173/#/tasks')
@@ -112,6 +135,22 @@ try{
  await page.getByPlaceholder('请输入密码').fill('fixture-password')
  await page.getByRole('button',{name:'登录工作台',exact:true}).click()
  await page.getByRole('heading',{name:'管理工作台'}).waitFor()
+ role='GROUP_LEADER'
+ await page.reload()
+ await page.locator('.app-layout').waitFor()
+ await page.goto('http://127.0.0.1:5173/#/tasks/new')
+ const companyPicker=page.locator('.el-form-item').filter({hasText:'任务所属公司'}).locator('.el-select')
+ const hostPicker=page.locator('.el-form-item').filter({hasText:'主办部门'}).locator('.el-select')
+ await companyPicker.click()
+ await page.getByRole('option',{name:'测试公司',exact:true}).click()
+ await hostPicker.click()
+ await page.getByRole('option',{name:'测试公司 / 综合管理部',exact:true}).click()
+ await companyPicker.click()
+ await page.getByRole('option',{name:'第二公司',exact:true}).click()
+ await hostPicker.click()
+ await page.getByRole('option',{name:'第二公司 / 第二部门',exact:true}).waitFor()
+ assert.equal(await page.getByRole('option',{name:'测试公司 / 综合管理部',exact:true}).count(),0,'host options are limited to selected company')
+ await page.keyboard.press('Escape')
  await page.locator('.profile').hover()
  await page.getByText('退出登录',{exact:true}).click()
  await page.getByRole('heading',{name:'登录工作台'}).waitFor()

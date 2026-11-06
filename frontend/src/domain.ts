@@ -8,6 +8,16 @@ export const actionLabels:Record<string,string>={'confirm-assign':'确认分配'
 export const allowed=(row:Row|null|undefined,action:string):boolean => Array.isArray(row?.allowedActions) && row.allowedActions.includes(action)
 export function validateAssignment(host:string,collaborators:string[]):string { if(!host)return '请选择且仅选择一个主办部门'; if(collaborators.length>2)return '协办部门最多两个'; if(collaborators.includes(host))return '主办部门不能同时为协办部门'; if(new Set(collaborators).size!==collaborators.length)return '协办部门不能重复'; return '' }
 export const listItems=(data:Row[]|Page):Row[] => Array.isArray(data)?data:data?.items ?? []
+export function availableTaskCompanies(role:string,companyId:string|number|null|undefined,departments:Row[]):Row[]{
+ const byId=new Map<string,Row>()
+ for(const department of departments){if(department.companyId==null)continue;const id=department.companyId;const key=String(id);if(!byId.has(key))byId.set(key,{id,name:department.companyName||`公司 ${id}`})}
+ if(role==='GROUP_LEADER')return [...byId.values()]
+ if(companyId==null)return []
+ return [{id:companyId,name:byId.get(String(companyId))?.name??`公司 ${companyId}`}]
+}
+export function departmentsForCompany(companyId:string|number|null|undefined,departments:Row[]):Row[]{
+ return companyId==null?[]:departments.filter(d=>d.companyId!=null&&String(d.companyId)===String(companyId))
+}
 export const display=(value:unknown):string => value==null||value===''?'—': typeof value==='object'?JSON.stringify(value):String(value)
 export const date=(value:unknown):string=>value?new Intl.DateTimeFormat('zh-CN',{timeZone:'Asia/Shanghai',dateStyle:'medium',timeStyle:'short'}).format(new Date(String(value))):'—'
 export const overdue=(row:Row):boolean=>{if(row.everOverdue)return true;if(!row.deadline)return false;const deadline=new Date(row.deadline).getTime(),completed=row.submittedAt??row.summarizedAt;if(completed)return new Date(completed).getTime()>deadline;return !['COMPLETED','ACCEPTED','CANCELLED'].includes(row.status)&&deadline<Date.now()}
