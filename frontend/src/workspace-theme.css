@@ -116,11 +116,10 @@ h2 {font-size:16px;font-weight:650}
 .login-story>div>p:not(.eyebrow),.login-story small,.login-note {color:var(--muted)}
 .login-flow span {background:var(--surface);border-color:var(--line);color:var(--muted);border-radius:6px}
 .login-panel {position:relative}
-.login-theme {position:absolute;top:28px;right:28px}
+.login-theme {position:absolute;top:28px;right:28px;display:flex;align-items:center;gap:12px}
 .security-card {position:relative}
-.security-theme {position:absolute;right:24px;top:24px}
-.source-notice {background:var(--bg)!important;color:var(--muted)}
-.source-notice a {color:var(--muted)!important}
+.security-theme {position:absolute;right:24px;top:24px;display:flex;align-items:center;gap:12px}
+.source-link {color:var(--muted);font-size:12px;text-decoration:none;white-space:nowrap}.source-link:hover {color:var(--text)}
 @media(max-width:767px) {
   .app-header {padding:0 16px}
   .header-right {gap:9px}

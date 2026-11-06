@@ -42,6 +42,8 @@ await page.route('**/api/v1/**',async route=>{const req=route.request(),url=new 
 try{
  await page.goto('http://127.0.0.1:5173')
  await page.getByRole('heading',{name:'登录工作台',exact:true}).waitFor()
+ assert.equal(await page.locator('footer.source-notice').count(),0,'source link is not in a footer')
+ assert.equal(await page.getByRole('link',{name:'开源许可与源码'}).count(),1,'source remains accessible before sign in')
  assert.equal(await page.getByText('会话已失效，请重新登录').count(),0,'first visit must not report an expired session')
  await page.getByPlaceholder('请输入工号').fill('fixture0026')
  await page.getByPlaceholder('请输入密码').fill('fixture-password')
@@ -49,6 +51,9 @@ try{
  await page.getByRole('button',{name:'登录工作台',exact:true}).click()
  await page.getByRole('heading',{name:'领导工作概览'}).waitFor()
  assert.equal(await page.locator('.watermark').count(),1,'authenticated view has watermark')
+ await page.locator('.profile').hover()
+ await page.getByRole('link',{name:'开源许可与源码'}).waitFor()
+ await page.mouse.move(0,0)
  await page.getByRole('button',{name:'切换为深色模式'}).click()
  assert.equal(await page.evaluate(()=>document.documentElement.dataset.theme),'dark','dark theme applies')
  await page.reload()
