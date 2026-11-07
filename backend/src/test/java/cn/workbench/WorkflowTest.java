@@ -9,6 +9,16 @@ import org.junit.jupiter.api.*;import org.springframework.boot.test.context.Spri
  Map<String,Object> sub(long task,int dept){return records.children(task,"SUB_TASK").stream().filter(s->Jsons.integer(s.get("deptId"))==dept).findFirst().orElseThrow();}
  void receive(Policy.Actor a,long task,int dept){tx(()->tasks.subAction(a,id(sub(task,dept)),"receive",Map.of()));}
  void submit(Policy.Actor a,long task,int dept){var s=sub(task,dept);tx(()->tasks.subAction(a,id(s),"submit",map("summary","成果版本","version",s.get("version"))));}
+ @Test void globalAdministratorCanCreatePublishAndViewTasksAcrossCompanies(){
+  var global=new Policy.Actor(1,"ADMIN",null,null,1); var existing=create();
+  assertThat(tasks.tasks(global)).anyMatch(t->id(t)==id(existing));
+  assertThat(tasks.detail(global,id(existing)).get("companyName")).isEqualTo("示范集团子公司甲");
+  var task=tx(()->tasks.create(global,map("title","全局管理员任务","content","验证发布","companyId",2,"hostDeptId",5,"deadline",Instant.now().plus(Duration.ofDays(2)).toString())));
+  assertThat(task.get("hostDeptName")).isEqualTo("运营部");
+  tx(()->tasks.taskAction(global,id(task),"confirm-assign",Map.of()));
+  assertThat(tasks.detail(global,id(task)).get("status")).isEqualTo("IN_PROGRESS");
+  assertThatThrownBy(()->tasks.detail(admin,id(existing))).isInstanceOf(ApiException.class);
+ }
  @Test void draftCollaborationIsNotExposedBeforeLeaderConfirmation(){
   var task=create();long taskId=id(task);var request=records.children(taskId,"COLLABORATION_REQUEST").getFirst();long requestId=id(request);
   assertThat(tasks.collaborations(other)).noneMatch(item->id(item)==requestId);

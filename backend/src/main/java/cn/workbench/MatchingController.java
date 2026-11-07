@@ -28,7 +28,7 @@ public class MatchingController {
         var actor=policy.actor(request);
         long taskId=TaskService.number(body,"taskId"),resultId=TaskService.number(body,"matchingResultId");
         var task=policy.task(actor,taskId);
-        policy.leader(actor,Jsons.integer(task.get("companyId")));
+        policy.taskLeader(actor,Jsons.integer(task.get("companyId")));
         if(!actor.role().equals("GROUP_LEADER")&&Jsons.number(task.get("creatorId"))!=actor.uid())throw ApiException.denied();
         authorizedResult(actor,resultId);
         String reason=TaskService.text(body,"reason",1000);
@@ -93,7 +93,7 @@ public class MatchingController {
     private Map<String,Object> authorizedResult(Policy.Actor actor,long id){
         var result=records.get(id);
         if(!"MATCHING_RESULT".equals(result.get("kind")))throw ApiException.denied();
-        policy.leader(actor,Jsons.integer(result.get("companyId")));
+        policy.taskLeader(actor,Jsons.integer(result.get("companyId")));
         if(!actor.role().equals("GROUP_LEADER")&&(result.get("ownerId")==null||Jsons.number(result.get("ownerId"))!=actor.uid()))throw ApiException.denied();
         return result;
     }
