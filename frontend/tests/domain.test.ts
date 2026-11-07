@@ -1,15 +1,46 @@
 import { describe, expect, it, beforeEach } from 'vitest'
-import { allowed, validateAssignment, kpiDisplayScore, canReadKpiScores, reworkDepartmentOptions } from '../src/domain'
+import { allowed, validateAssignment, kpiDisplayScore, canReadKpiScores, reworkDepartmentOptions, overdue } from '../src/domain'
 import { ApiError, api, transport, resetSessionBoundary, sessionEpoch, onSessionExpired } from '../src/api'
 import { createPinia, setActivePinia } from 'pinia'
 import { useAuth } from '../src/stores/auth'
 const envelope = (data: unknown) => ({ data: { code:'OK', data, message:'', traceId:'t1' }, status:200, statusText:'OK', headers:{}, config: {} as any })
 beforeEach(() => { setActivePinia(createPinia()); resetSessionBoundary() })
 describe('authorization display policy', () => {
+  it('uses the submission or summary time for overdue badges and preserves historical lateness', () => {
+    const deadline='2020-01-10T00:00:00Z',onTime='2020-01-09T00:00:00Z',late='2020-01-11T00:00:00Z'
+    expect(overdue({status:'SUBMITTED',deadline,submittedAt:onTime})).toBe(false)
+    expect(overdue({status:'SUBMITTED',deadline,submittedAt:late})).toBe(true)
+    expect(overdue({status:'PENDING_ACCEPTANCE',deadline,summarizedAt:onTime})).toBe(false)
+    expect(overdue({status:'IN_PROGRESS',deadline})).toBe(true)
+    expect(overdue({status:'ACCEPTED',deadline,everOverdue:true})).toBe(true)
+  })
   it('does not infer permission from a role or a missing action list', () => { expect(allowed({role:'ADMIN'}, 'accept')).toBe(false); expect(allowed({allowedActions:['accept']},'cancel')).toBe(false); expect(allowed({allowedActions:['accept']},'accept')).toBe(true) })
   it('requires one host, zero to two distinct collaborators excluding host', () => { expect(validateAssignment('',[])).toBeTruthy(); expect(validateAssignment('a',['b','c','d'])).toBeTruthy(); expect(validateAssignment('a',['a'])).toBeTruthy(); expect(validateAssignment('a',['b','b'])).toBeTruthy(); expect(validateAssignment('a',['b','c'])).toBe('') })
 })
 describe('session boundary and transport', () => {
+  it('does not let an old CSRF request clear the new session request', async () => {
+    const pending: Array<(value:any)=>void> = []
+    let csrfCalls = 0
+    transport.defaults.adapter = config => {
+      if (config.url === '/auth/csrf') {
+        csrfCalls++
+        return new Promise(resolve => pending.push(value => resolve({...value, config})))
+      }
+      return Promise.resolve({...envelope({}), config})
+    }
+    const old = api.post('/tasks',{}).catch(error => error)
+    await Promise.resolve()
+    resetSessionBoundary()
+    const current = api.post('/tasks',{})
+    await Promise.resolve()
+    pending[0](envelope({token:'old',headerName:'X-CSRF-TOKEN'}))
+    expect((await old).code).toBe('STALE_SESSION')
+    const concurrent = api.post('/tasks',{})
+    await Promise.resolve()
+    expect(csrfCalls).toBe(2)
+    pending[1](envelope({token:'current',headerName:'X-CSRF-TOKEN'}))
+    await Promise.all([current,concurrent])
+  })
   it('rejects an old request after changing context', async () => { let finish!: (v:any)=>void; transport.defaults.adapter = () => new Promise(r=>{finish=r}); const p=api.get('/tasks'); await Promise.resolve(); resetSessionBoundary(); finish(envelope({items:[{id:'old'}]})); await expect(p).rejects.toMatchObject({code:'STALE_SESSION'}) })
   it('sends cookies, CSRF and a fresh idempotency key for business writes', async () => { const seen:any[]=[]; transport.defaults.adapter=async config=>{ seen.push(config); return {...envelope(config.url==='/auth/csrf'?{token:'token',headerName:'X-CSRF-TOKEN'}:{}),config} }; await api.post('/tasks',{title:'a'}); await api.post('/tasks',{title:'b'}); const writes=seen.filter(x=>x.url==='/tasks'); expect(writes[0].withCredentials).toBe(true); expect(writes[0].headers.get('X-CSRF-TOKEN')).toBe('token'); expect(writes[0].headers.get('Idempotency-Key')).toBeTruthy(); expect(writes[0].headers.get('Idempotency-Key')).not.toBe(writes[1].headers.get('Idempotency-Key')) })
   it('preserves error trace and conflict semantics', async () => { transport.defaults.adapter=async config=>config.url==='/auth/csrf'?{...envelope({token:'t',headerName:'X-CSRF-TOKEN'}),config}:({...envelope(null),config,status:409,data:{code:'VERSION_CONFLICT',message:'请刷新',traceId:'conflict-1'}}); await expect(api.post('/auth/login',{})).rejects.toMatchObject({status:409,traceId:'conflict-1'}) })

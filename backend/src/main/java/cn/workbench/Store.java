@@ -55,7 +55,7 @@ import org.apache.ibatis.annotations.*;import java.util.*;
  @Update("UPDATE notification_outbox SET attempts=attempts+1,next_attempt=#{next},last_error='DELIVERY_FAILURE',status=CASE WHEN attempts>=9 THEN 'DEAD' ELSE 'PENDING' END WHERE id=#{id}") int retry(@Param("id")long id,@Param("next")java.time.LocalDateTime next);
  @Select("SELECT * FROM notification WHERE user_id=#{uid} AND archived=FALSE ORDER BY id DESC") List<Map<String,Object>> notifications(long uid);
  @Update("UPDATE notification SET is_read=TRUE WHERE id=#{id} AND user_id=#{uid}") int readNotification(@Param("id")long id,@Param("uid")long uid);
- @Update("UPDATE notification SET archived=TRUE WHERE user_id=#{uid} AND is_read=TRUE") int archiveNotifications(long uid);
+ @Update("UPDATE notification SET archived=TRUE WHERE id=#{id} AND user_id=#{uid} AND is_read=TRUE AND archived=FALSE") int archiveNotification(@Param("id")long id,@Param("uid")long uid);
  @Insert("INSERT INTO kpi_run_key(company_id,period,template_id,run_id) VALUES(#{company},#{period},#{template},#{run})") int runKey(Map<String,Object> row);
  @Select("SELECT run_id FROM kpi_run_key WHERE company_id=#{company} AND period=#{period} AND template_id=#{template}") Long runFor(Map<String,Object> row);
  @Insert("INSERT INTO job_execution(execution_key,status) VALUES(#{key},'RUNNING')") int startJob(String key);

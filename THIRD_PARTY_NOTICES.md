@@ -4,6 +4,10 @@ Task Workbench's original code is licensed under AGPL-3.0-only. Dependencies ret
 
 The version-specific inventories, CycloneDX SBOMs, extracted upstream notices, and review limitations are in [docs/release/licenses](docs/release/licenses/REVIEW.md). The inventories include development/test dependencies as well as runtime dependencies. A dependency appearing here does not mean its source or binary is redistributed in this repository.
 
+The 2026-11-01 frontend inventory is a historical snapshot and does not include later dependencies. Authenticator QR rendering adds `qrcode` 1.5.4 (MIT); its installed dependency tree includes `dijkstrajs` 1.0.3, `pngjs` 5.0.0 and `yargs` 15.4.1 (MIT). Their license texts are included in `frontend/public/third-party/`. The QR decoding test uses `jsqr` 1.4.0 (Apache-2.0) as a development dependency. Consult the current lockfile and CI-generated SBOM for the complete dependency tree.
+
+The workspace navigation also uses `lucide-vue-next` 0.577.0 (ISC); its license is included in `frontend/public/third-party/`.
+
 Frontend dependency metadata declares MIT, Apache-2.0, ISC, BSD-2-Clause, BSD-3-Clause, BlueOak-1.0.0, and Python-2.0 licenses. Backend metadata also includes EPL/LGPL alternatives, MPL/EPL alternatives, CC0/BSD alternatives, and MySQL Connector/J's GPLv2 with Universal FOSS Exception 1.0. Consult each component's original terms; multiple licenses reported by Maven are not automatically an SPDX AND or OR expression.
 
 Particular attention is required for:

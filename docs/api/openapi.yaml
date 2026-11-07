@@ -8329,6 +8329,13 @@
               "format": "int64",
               "default": 20
             }
+          },
+          {
+            "name": "read",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "boolean" },
+            "description": "Filter authorized notifications by read state before pagination."
           }
         ]
       }
@@ -9381,7 +9388,11 @@
               "format": "int64",
               "default": 20
             }
-          }
+          },
+          { "name": "status", "in": "query", "required": false, "schema": { "type": "string" } },
+          { "name": "keyword", "in": "query", "required": false, "schema": { "type": "string" } },
+          { "name": "priority", "in": "query", "required": false, "schema": { "type": "string" } },
+          { "name": "overdue", "in": "query", "required": false, "schema": { "type": "boolean" } }
         ]
       }
     },
@@ -10587,7 +10598,9 @@
             "schema": {
               "type": "string"
             }
-          }
+          },
+          { "name": "priority", "in": "query", "required": false, "schema": { "type": "string" } },
+          { "name": "overdue", "in": "query", "required": false, "schema": { "type": "boolean" } }
         ]
       },
       "post": {
