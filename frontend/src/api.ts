@@ -9,7 +9,7 @@ let expire=()=>{}
 export const onSessionExpired=(callback:()=>void)=>{expire=callback}
 export const sessionEpoch=()=>epoch
 export const resetSessionBoundary=()=>{epoch++;csrf=null;csrfPromise=null}
-async function csrfToken(){ if(csrf)return csrf; if(!csrfPromise){const started=epoch;csrfPromise=transport.get('/auth/csrf').then(res=>{if(epoch!==started)throw new ApiError(0,'STALE_SESSION','身份已切换，请重试');if(res.status!==200||res.data.code!=='OK')throw new ApiError(res.status,res.data.code??'CSRF_FAILED',res.data.message??'无法获取安全令牌',res.data.traceId); csrf=res.data.data;return csrf!}).finally(()=>{csrfPromise=null})}return csrfPromise }
+async function csrfToken(){ if(csrf)return csrf; if(!csrfPromise){const started=epoch;const pending=transport.get('/auth/csrf').then(res=>{if(epoch!==started)throw new ApiError(0,'STALE_SESSION','身份已切换，请重试');if(res.status!==200||res.data.code!=='OK')throw new ApiError(res.status,res.data.code??'CSRF_FAILED',res.data.message??'无法获取安全令牌',res.data.traceId); csrf=res.data.data;return csrf!}).finally(()=>{if(csrfPromise===pending)csrfPromise=null});csrfPromise=pending}return csrfPromise }
 async function request<T=any>(path:string,method:string,data?:unknown,config:AxiosRequestConfig={}):Promise<T>{
  const started=epoch
  const headers:Record<string,string>={}
