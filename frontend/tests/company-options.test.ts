@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { availableTaskCompanies, departmentsForCompany } from '../src/domain'
+import { availableTaskCompanies, departmentsForCompany, companyLabel } from '../src/domain'
 
 const departments = [
   { id: 10, companyId: 1, companyName: '甲公司', name: '甲部门' },
@@ -21,4 +21,11 @@ describe('task organization choices', () => {
     expect(departmentsForCompany('1', departments).map(d => d.id)).toEqual([10, 11])
     expect(departmentsForCompany(null, departments)).toEqual([])
   })
+})
+
+it('shows the name for numeric or string company identifiers, including disabled companies', () => {
+  const companies = [{ id: 3, name: '示例公司', enabled: false }]
+  expect(companyLabel('3', companies)).toBe('示例公司')
+  expect(companyLabel(9, companies)).toBe('公司名称不可用')
+  expect(companyLabel(null, companies)).toBe('—')
 })

@@ -8,6 +8,7 @@ export const actionLabels:Record<string,string>={'confirm-assign':'确认分配'
 export const allowed=(row:Row|null|undefined,action:string):boolean => Array.isArray(row?.allowedActions) && row.allowedActions.includes(action)
 export function validateAssignment(host:string,collaborators:string[]):string { if(!host)return '请选择且仅选择一个主办部门'; if(collaborators.length>2)return '协办部门最多两个'; if(collaborators.includes(host))return '主办部门不能同时为协办部门'; if(new Set(collaborators).size!==collaborators.length)return '协办部门不能重复'; return '' }
 export const listItems=(data:Row[]|Page):Row[] => Array.isArray(data)?data:data?.items ?? []
+export function companyLabel(id:string|number|null|undefined,companies:Row[]):string { if(id==null||id==='')return '—'; return companies.find(c=>String(c.id)===String(id))?.name||'公司名称不可用' }
 export function availableTaskCompanies(role:string,companyId:string|number|null|undefined,departments:Row[]):Row[]{
  const byId=new Map<string,Row>()
  for(const department of departments){if(department.companyId==null)continue;const id=department.companyId;const key=String(id);if(!byId.has(key))byId.set(key,{id,name:department.companyName||`公司 ${id}`})}
