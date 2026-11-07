@@ -1,6 +1,7 @@
 import { createRouter,createWebHashHistory } from 'vue-router'
 const Dashboard=()=>import('./views/Dashboard.vue')
 const Tasks=()=>import('./views/Tasks.vue')
+const TaskBatch=()=>import('./views/TaskBatch.vue')
 const TaskCreate=()=>import('./views/TaskCreate.vue')
 const TaskDetail=()=>import('./views/TaskDetail.vue')
 const Kpi=()=>import('./views/Kpi.vue')
@@ -10,4 +11,4 @@ const Reports=()=>import('./views/Reports.vue')
 const Collaborations=()=>import('./views/Collaborations.vue')
 const OrganizationChanges=()=>import('./views/OrganizationChanges.vue')
 const CalendarSimulation=()=>import('./views/CalendarSimulation.vue')
-export const router=createRouter({history:createWebHashHistory(),routes:[{path:'/',component:Dashboard,meta:{title:'工作概览'}},{path:'/tasks',component:Tasks,meta:{title:'任务中心'}},{path:'/mine',component:Tasks,meta:{title:'我的任务'}},{path:'/tasks/new',component:TaskCreate,meta:{title:'布置任务'}},{path:'/tasks/:id',component:TaskDetail,meta:{title:'任务详情'}},{path:'/kpi',component:Kpi,meta:{title:'部门考核'}},{path:'/admin/:resource',component:Admin,meta:{title:'管理配置'}},{path:'/notifications',component:Notifications,meta:{title:'通知中心'}},{path:'/reports',component:Reports,meta:{title:'统计分析'}},{path:'/collaborations',component:Collaborations,meta:{title:'协同确认'}},{path:'/organization-changes',component:OrganizationChanges,meta:{title:'岗位与交接'}},{path:'/calendar-simulation',component:CalendarSimulation,meta:{title:'日历模拟'}},{path:'/:pathMatch(.*)*',redirect:'/'}]})
+export const router=createRouter({history:createWebHashHistory(),routes:[{path:'/',component:Dashboard,meta:{title:'工作概览'}},{path:'/tasks',component:Tasks,meta:{title:'任务中心'}},{path:'/mine',component:Tasks,meta:{title:'我的任务'}},{path:'/tasks/new',component:TaskCreate,meta:{title:'布置任务'}},{path:'/tasks/import',component:TaskBatch,meta:{title:'批量布置任务'}},{path:'/tasks/:id',component:TaskDetail,meta:{title:'任务详情'}},{path:'/kpi',component:Kpi,meta:{title:'部门考核'}},{path:'/admin/:resource',component:Admin,meta:{title:'管理配置'}},{path:'/notifications',component:Notifications,meta:{title:'通知中心'}},{path:'/reports',component:Reports,meta:{title:'统计分析'}},{path:'/collaborations',component:Collaborations,meta:{title:'协同确认'}},{path:'/organization-changes',component:OrganizationChanges,meta:{title:'岗位与交接'}},{path:'/calendar-simulation',component:CalendarSimulation,meta:{title:'日历模拟'}},{path:'/:pathMatch(.*)*',redirect:'/'}]})

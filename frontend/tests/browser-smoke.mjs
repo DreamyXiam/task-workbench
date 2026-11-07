@@ -21,6 +21,7 @@ await page.route('**/api/v1/**',async route=>{const req=route.request(),url=new 
  else if(path==='/auth/me'){if(!loggedIn){await route.fulfill({status:401,json:{code:'UNAUTHENTICATED',message:'请登录',traceId:'fixture-auth'}});return}data=me()}
  else if(path==='/stats/overview')data={total:12,inProgress:7,pendingAcceptance:3,overdue:2,completed:2,recentTasks:[task]}
  else if(path==='/stats/dept')data=[{deptId:'fixture-dept',deptName:'综合管理部',total:12,completed:2,overdue:2,inProgress:7,pendingAcceptance:3,completionRate:16.67}]
+ else if(path==='/tasks'&&method==='POST')data={id:'batch-created-'+writes.length,status:'DRAFT'}
  else if(path==='/tasks'||path==='/sub-tasks/mine')data={items:[task],total:1,page:1,pageSize:20}
  else if(path==='/tasks/fixture-task')data=task
  else if(path==='/tasks/match')data={suggestions:[{deptId:'fixture-dept',deptName:'综合管理部',role:'HOST',score:90,reasons:['命中：项目验收']}],ruleVersion:'fixture-v1'}
@@ -134,6 +135,10 @@ try{
  await page.goto('http://127.0.0.1:5173/#/admin/companies')
  await page.getByRole('button',{name:'＋ 新增公司'}).click()
  const adminDrawer=page.getByRole('dialog',{name:'新增公司管理'})
+ const card=adminDrawer.locator('.app-card-dialog')
+ assert.equal(await card.count(),1,'admin form uses a centered dialog')
+ const dialogBox=await card.boundingBox()
+ assert.ok(Math.abs(dialogBox.x+dialogBox.width/2-720)<3,'admin dialog is centered')
  const companyCode=adminDrawer.locator('.el-form-item').filter({hasText:'公司编码'}).locator('input')
  const companyName=adminDrawer.locator('.el-form-item').filter({hasText:'公司名称'}).locator('input')
  await companyCode.fill('FIXTURE')
@@ -213,6 +218,22 @@ try{
  await page.getByRole('option',{name:'第二公司 / 第二部门',exact:true}).waitFor()
  assert.equal(await page.getByRole('option',{name:'测试公司 / 综合管理部',exact:true}).count(),0,'host options are limited to selected company')
  await page.keyboard.press('Escape')
+ await page.goto('http://127.0.0.1:5173/#/tasks/import')
+ await page.getByRole('heading',{name:'批量布置任务'}).waitFor()
+ await page.locator('.el-form-item').filter({hasText:'所属公司'}).locator('.el-select').click()
+ await page.getByRole('option',{name:'测试公司',exact:true}).click()
+ await page.locator('.el-form-item').filter({hasText:'默认主办部门'}).locator('.el-select').click()
+ await page.getByRole('option',{name:'综合管理部',exact:true}).click()
+ const batchDeadline=page.locator('.el-form-item').filter({hasText:'本批截止时间'}).locator('input')
+ await batchDeadline.fill('2026-12-31 18:00:00')
+ await batchDeadline.press('Enter')
+ await page.getByPlaceholder('在 Excel 中选中表头与数据行，复制后粘贴到这里。须包含工作内容列。').fill('序号\t工作内容\t推进情况\n1\t批量测试事项\t待推进')
+ await page.getByRole('button',{name:'解析并预览'}).click()
+ await page.getByRole('button',{name:'创建待确认任务'}).click()
+ await page.getByRole('link',{name:'已创建 查看并确认任务'}).waitFor()
+ const batchWrite=writes.findLast(w=>w.path==='/tasks')
+ assert.equal(batchWrite.body.title,'批量测试事项')
+ assert.ok(batchWrite.headers['idempotency-key'])
  await page.locator('.profile').hover()
  await page.getByText('退出登录',{exact:true}).click()
  await page.getByRole('heading',{name:'登录工作台'}).waitFor()
