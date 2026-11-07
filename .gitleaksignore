@@ -9,3 +9,6 @@
 153905b94aba652c17c0ee755cb915a939a7cae7:backend/src/test/java/cn/workbench/OrganizationChangesTest.java:generic-api-key:37
 153905b94aba652c17c0ee755cb915a939a7cae7:backend/src/test/java/cn/workbench/HttpSecurityTest.java:generic-api-key:3
 153905b94aba652c17c0ee755cb915a939a7cae7:backend/src/test/java/cn/workbench/MatchingEngineTest.java:generic-api-key:117
+
+# Deterministic byte-sequence TOTP key used only by the test-access integration fixture.
+589b51b9bcbdfa596cf67617c94beebba748fe20:backend/src/test/java/cn/workbench/TestAccessIntegrationTest.java:generic-api-key:20
