@@ -9,7 +9,7 @@ import { useLoad,usePoll } from '../composables'
 import PageState from '../components/PageState.vue'
 import StatusBadge from '../components/StatusBadge.vue'
 const route=useRoute(),auth=useAuth(),items=ref<Row[]>([]),total=ref(0),page=ref(1),pageSize=ref(20),keyword=ref(''),status=ref(String(route.query.status||'')),late=ref(route.query.overdue==='true'),priority=ref(''),filterOpen=ref(false),{loading,error,run}=useLoad()
-const mine=computed(()=>route.path==='/mine'),leader=computed(()=>(['GROUP_LEADER','DIVISION_LEADER','COMPANY_LEADER'].includes(auth.me?.role??'')||(auth.me?.role==='ADMIN'&&auth.me?.companyId==null)))
+const mine=computed(()=>route.path==='/mine'),leader=computed(()=>(['GROUP_LEADER','DIVISION_LEADER','COMPANY_LEADER'].includes(auth.me?.role??'')||(auth.me?.role==='ADMIN'&&auth.me?.companyId==null))&&(!auth.me?.permissions||auth.me.permissions.includes('TASK_CREATE')))
 const tabs=computed(()=>mine.value?[['','全部任务'],['PENDING_RECEIVE','待接收'],['IN_PROGRESS','进行中'],['SUBMITTED','已提交'],['ACCEPTED','已验收'],['COMPLETED','已完成']]:[['','全部任务'],['DRAFT','待确认'],['IN_PROGRESS','进行中'],['PENDING_ACCEPTANCE','待验收'],['COMPLETED','已完成']])
 function load(){run(()=>api.get<Page>(mine.value?'/sub-tasks/mine':'/tasks',{page:page.value,pageSize:pageSize.value,keyword:keyword.value,status:status.value||undefined,priority:priority.value||undefined,overdue:late.value||undefined}),data=>{items.value=data.items;total.value=data.total})}
 function search(){page.value=1;load();filterOpen.value=false}

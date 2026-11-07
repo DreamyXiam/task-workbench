@@ -13,6 +13,58 @@ import org.junit.jupiter.api.*;import org.springframework.boot.test.context.Spri
   mvc.perform(get("/api/v1/sub-tasks/mine").session(employee).param("keyword","整理材料")).andExpect(status().isOk()).andExpect(jsonPath("$.data.total").value(1));
   mvc.perform(post("/api/v1/work-items/"+itemId).session(employee).with(csrf()).header("Idempotency-Key",java.util.UUID.randomUUID().toString()).contentType("application/json").content("{\"version\":0,\"percent\":50}")).andExpect(status().isOk()).andExpect(jsonPath("$.data.percent").value(50));
  }
+ @Test @org.springframework.transaction.annotation.Transactional void configuredRolePermissionIsEnforcedAndRevokesSessions()throws Exception{
+  jdbc.update("UPDATE user_scope SET company_id=NULL WHERE user_id=1");var global=session("demo.admin");global.setAttribute("totpAt",System.currentTimeMillis());var head=session("demo.head");
+  mvc.perform(get("/api/v1/tasks").session(head)).andExpect(status().isOk());
+  mvc.perform(put("/api/v1/admin/role-permissions/DEPT_HEAD").session(global).with(csrf()).header("Idempotency-Key",java.util.UUID.randomUUID().toString()).contentType("application/json").content("{\"version\":-1,\"disabled\":[\"TASK_VIEW\"]}")).andExpect(status().isOk());
+  mvc.perform(get("/api/v1/tasks").session(head)).andExpect(status().isUnauthorized());
+  var fresh=session("demo.head");mvc.perform(get("/api/v1/tasks").session(fresh)).andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("ROLE_PERMISSION_DENIED"));
+  mvc.perform(get("/api/v1/sub-tasks/mine").session(fresh)).andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("ROLE_PERMISSION_DENIED"));
+  mvc.perform(get("/api/v1/stats/dept").session(fresh)).andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("ROLE_PERMISSION_DENIED"));
+  mvc.perform(put("/api/v1/admin/role-permissions/DEPT_HEAD").session(global).with(csrf()).header("Idempotency-Key",java.util.UUID.randomUUID().toString()).contentType("application/json").content("{\"version\":-1,\"disabled\":[]}")).andExpect(status().isConflict());
+  mvc.perform(put("/api/v1/admin/role-permissions/DEPT_HEAD").session(fresh).with(csrf()).header("Idempotency-Key",java.util.UUID.randomUUID().toString()).contentType("application/json").content("{\"version\":0,\"disabled\":[]}")).andExpect(status().isForbidden());
+  mvc.perform(put("/api/v1/admin/role-permissions/ADMIN").session(global).with(csrf()).header("Idempotency-Key",java.util.UUID.randomUUID().toString()).contentType("application/json").content("{\"version\":-1,\"disabled\":[\"TASK_VIEW\"]}")).andExpect(status().isOk());
+  mvc.perform(get("/api/v1/admin/role-permissions").session(global)).andExpect(status().isOk());
+  mvc.perform(get("/api/v1/tasks").session(global)).andExpect(status().isOk());
+ }
+ @Test @org.springframework.transaction.annotation.Transactional void permissionSwitchesDoNotGrantExistingRoleForbiddenActions()throws Exception{
+  var employee=session("demo.employee");String body="{\"title\":\"越权任务\",\"content\":\"测试\",\"companyId\":1,\"hostDeptId\":3,\"deadline\":\""+java.time.Instant.now().plusSeconds(3600)+"\"}";
+  mvc.perform(post("/api/v1/tasks").session(employee).with(csrf()).header("Idempotency-Key",java.util.UUID.randomUUID().toString()).contentType("application/json").content(body)).andExpect(status().isForbidden());
+ }
+ @Test @org.springframework.transaction.annotation.Transactional void companyAdministratorCanBeRestrictedWithoutLockingOutGlobalAdministrator()throws Exception{
+  jdbc.update("UPDATE user_scope SET company_id=NULL WHERE user_id=1");var global=session("demo.admin");global.setAttribute("totpAt",System.currentTimeMillis());
+  var user=Records.map("account","company-admin-test","name","公司管理员","passwordHash",passwords.encode("TestOnly-Synthetic12345"),"mustChangePassword",false);db.insertUser(user);db.insertScope(Records.map("userId",user.get("id"),"role","ADMIN","companyId",1,"deptId",null));
+  var companyAdmin=session("company-admin-test");
+  mvc.perform(put("/api/v1/admin/role-permissions/ADMIN").session(global).with(csrf()).header("Idempotency-Key",java.util.UUID.randomUUID().toString()).contentType("application/json").content("{\"version\":-1,\"disabled\":[\"TASK_VIEW\",\"USER_ADMIN\"]}")).andExpect(status().isOk());
+  mvc.perform(get("/api/v1/tasks").session(companyAdmin)).andExpect(status().isUnauthorized());
+  var fresh=session("company-admin-test");mvc.perform(get("/api/v1/tasks").session(fresh)).andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("ROLE_PERMISSION_DENIED"));
+  mvc.perform(get("/api/v1/admin/users").session(fresh)).andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("ROLE_PERMISSION_DENIED"));
+  mvc.perform(get("/api/v1/auth/me").session(fresh)).andExpect(status().isOk()).andExpect(jsonPath("$.data.permissions").value(org.hamcrest.Matchers.not(org.hamcrest.Matchers.hasItem("USER_ADMIN"))));
+  mvc.perform(get("/api/v1/auth/me").session(global)).andExpect(status().isOk()).andExpect(jsonPath("$.data.permissions").value(org.hamcrest.Matchers.hasItem("USER_ADMIN")));
+  mvc.perform(get("/api/v1/organization/appointments").session(fresh)).andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("ROLE_PERMISSION_DENIED"));
+  mvc.perform(get("/api/v1/tasks").session(global)).andExpect(status().isOk());mvc.perform(get("/api/v1/admin/role-permissions").session(global)).andExpect(status().isOk());
+ }
+ @Test @org.springframework.transaction.annotation.Transactional void disablingTaskWritesBlocksBothCreateAndWorkflowEndpoints()throws Exception{
+  jdbc.update("UPDATE user_scope SET company_id=NULL WHERE user_id=1");var global=session("demo.admin");global.setAttribute("totpAt",System.currentTimeMillis());
+  var task=tasks.create(new Policy.Actor(2,"COMPANY_LEADER",1,null,2),Records.map("title","权限测试","content","测试","companyId",1,"hostDeptId",3,"deadline",java.time.Instant.now().plusSeconds(3600).toString()));
+  mvc.perform(put("/api/v1/admin/role-permissions/COMPANY_LEADER").session(global).with(csrf()).header("Idempotency-Key",java.util.UUID.randomUUID().toString()).contentType("application/json").content("{\"version\":-1,\"disabled\":[\"TASK_CREATE\",\"TASK_UPDATE\"]}")).andExpect(status().isOk());
+  var leader=session("demo.leader");mvc.perform(get("/api/v1/tasks").session(leader)).andExpect(status().isOk());
+  mvc.perform(post("/api/v1/tasks").session(leader).with(csrf()).header("Idempotency-Key",java.util.UUID.randomUUID().toString()).contentType("application/json").content("{}")).andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("ROLE_PERMISSION_DENIED"));
+  mvc.perform(post("/api/v1/tasks/"+task.get("id")+"/confirm-assign").session(leader).with(csrf()).header("Idempotency-Key",java.util.UUID.randomUUID().toString()).contentType("application/json").content("{}")).andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("ROLE_PERMISSION_DENIED"));
+ }
+ @Test void permissionMappingClosesUnclassifiedApiRoutes(){
+  assertThat(RolePermissions.required(new org.springframework.mock.web.MockHttpServletRequest("GET","/api/v1/tasks/7"))).isEqualTo("TASK_VIEW");
+  assertThat(RolePermissions.required(new org.springframework.mock.web.MockHttpServletRequest("POST","/api/v1/tasks/7/work-items"))).isEqualTo("TASK_UPDATE");
+  assertThat(RolePermissions.required(new org.springframework.mock.web.MockHttpServletRequest("GET","/api/v1/admin/users"))).isEqualTo("USER_ADMIN");
+  assertThat(RolePermissions.required(new org.springframework.mock.web.MockHttpServletRequest("POST","/api/v1/organization/departments"))).isEqualTo("UNMAPPED");
+  assertThat(RolePermissions.required(new org.springframework.mock.web.MockHttpServletRequest("GET","/api/v1/unknown-future-api"))).isEqualTo("UNMAPPED");
+ }
+ @Test @org.springframework.transaction.annotation.Transactional void userAdministrationKeepsScopedCompanyDirectoryWhenOrgManagementIsDisabled()throws Exception{
+  jdbc.update("UPDATE user_scope SET company_id=NULL WHERE user_id=1");var global=session("demo.admin");global.setAttribute("totpAt",System.currentTimeMillis());
+  var user=Records.map("account","company-options-admin","name","公司管理员","passwordHash",passwords.encode("TestOnly-Synthetic12345"),"mustChangePassword",false);db.insertUser(user);db.insertScope(Records.map("userId",user.get("id"),"role","ADMIN","companyId",1,"deptId",null));
+  mvc.perform(put("/api/v1/admin/role-permissions/ADMIN").session(global).with(csrf()).header("Idempotency-Key",java.util.UUID.randomUUID().toString()).contentType("application/json").content("{\"version\":-1,\"disabled\":[\"ORG_ADMIN\"]}")).andExpect(status().isOk());
+  var companyAdmin=session("company-options-admin");mvc.perform(get("/api/v1/admin/companies").session(companyAdmin)).andExpect(status().isOk());mvc.perform(get("/api/v1/admin/users").session(companyAdmin)).andExpect(status().isOk());mvc.perform(get("/api/v1/admin/departments").session(companyAdmin)).andExpect(status().isForbidden());
+ }
  @Test void csrfRejectsForgedLoginBeforeMutation()throws Exception{mvc.perform(post("/api/v1/auth/login").contentType("application/json").content("{\"account\":\"demo.employee\",\"password\":\"TestOnly-Synthetic12345\"}")).andExpect(status().isForbidden());}
  @Test void unauthenticatedCannotReadTasks()throws Exception{mvc.perform(get("/api/v1/tasks")).andExpect(status().isUnauthorized());}
  @Test void bootstrapHasSeparateScopesAndRealForeignKeys(){assertThat(db.users()).hasSize(7);assertThat(db.list("DEPARTMENT",null,null)).hasSize(3);}
