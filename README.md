@@ -1,32 +1,62 @@
-# 任务工作台 V1.5
+# Task Workbench V1.5
 
-[简体中文](README.zh-CN.md) | English
+An organizational workbench for assigning tasks, coordinating departments, recording written updates and reviewing delivery—with responsibility and history in one place.
 
-## Current task experience
+[简体中文](README.zh-CN.md) · **English** · [User guide](docs/operations/task-ui-guide.md) · [Deployment](docs/operations/deployment.md) · [Build checks](https://github.com/DreamyXiam/task-workbench/actions/workflows/verify.yml)
 
-- Task cards open details from anywhere on the card and show workflow status, responsibility, deadline and the latest report. Task completion percentages and percentage progress bars are not displayed.
-- Reports contain a written update and its timestamp. Department and main-task states advance through receive, submit, summarize and acceptance actions. Independent work items use an **In progress / Completed** selector.
-- The Gantt view combines a full-cycle overview with **month / week / day** windows, defaulting to the current month. Drag the overview selection to browse multi-year tasks, move the time pointer to inspect report clips, or jump to a date. Browsing does not change deadlines or historical reports.
+> **Development preview.** Suitable for source review and isolated evaluation; production acceptance remains pending. See the [acceptance matrix](docs/testing/acceptance-matrix.md) and [release checklist](docs/release/v1.5-release-checklist.md).
 
-See the [task UI and reporting guide](docs/operations/task-ui-guide.md) for workflow, timeline controls and compatibility details. This source preview still requires the acceptance and release checks described below.
+![Task cards with workflow status, responsibility and the latest written report](docs/images/task-cards-desktop.png)
 
-## Open-source preview
+## What it does
 
-Task Workbench supports department-based task assignment, cross-company collaboration, delivery review and auditable KPI snapshots. It is intended for teams evaluating a self-hosted organizational workbench. This is a development preview; production acceptance remains pending.
+| Capability | Experience |
+| --- | --- |
+| Assignment and ownership | Create individual or batch tasks with a host department, collaborators, owner and deadline |
+| Task cards | Read the latest report and status; open details from anywhere on a card |
+| Written updates and delivery | Record updates, submit results, summarize and accept through explicit workflow actions |
+| Multi-year timeline | Browse report clips using a full-cycle overview and month, week or day windows |
+| Independent work items | Assign smaller items to people and select In progress or Completed |
+| Scoped access and audit | Apply company, department and role boundaries to actions, attachments and records |
+| Collaboration and assessment | Confirm cross-company work, follow notifications and inspect auditable KPI snapshots |
+| Desktop and mobile themes | Use the same workflow in light and dark layouts, including narrow screens |
 
-Original project code is licensed under [GNU AGPL v3.0 only](LICENSE) (`AGPL-3.0-only`). Third-party components retain their own licenses; the dependency inventory and distribution conditions are recorded below. See [contributing](CONTRIBUTING.md), [security reporting](SECURITY.md), and the [public-release checklist](docs/release/open-source-readiness.md). No public release or production support is implied by this license.
+Task views show **workflow status and written updates**, without per-task completion percentages or percentage progress bars. Historical numeric values remain compatible with existing interfaces. Aggregate rates and KPI metrics retain their own definitions.
 
-Dependency declarations, SBOMs and upstream notices are now inventoried in [the license review](docs/release/licenses/REVIEW.md). This preview publishes source; binary redistribution has additional notice/source conditions. Network deployers must configure the [corresponding-source link](docs/release/source-distribution.md) for their deployed version.
+## Interface preview
 
-![Synthetic employee dashboard](docs/images/oss-demo-employee-desktop.png)
+These images render the current frontend with synthetic API responses and fictional demonstration records. They contain no real business records or login credentials. They illustrate the interface, rather than certify live backend behavior or production acceptance.
 
-The screenshot uses an isolated H2 database and a synthetic employee, with no real business records. [Clean-demo evidence](docs/testing/evidence/oss-clean-demo-20261101.json) covers actual authentication and responsive layouts; it does not establish production readiness.
+### Multi-year tasks, readable report history
 
-A source project for the task lifecycle, scoped Session/CSRF security, immutable KPI assessment and a Vue3/TypeScript workbench. This working tree is a reviewable implementation; it is **not yet approved for production**. Check [acceptance](docs/testing/acceptance-matrix.md), [implementation evidence](docs/implementation/) and [release gates](docs/release/v1.5-release-checklist.md) for actual scope and verification limits.
+The overview retains the complete span while the main track defaults to the current month. Drag the selection, switch to a week or day, or jump to a date. Select a clip to inspect the original report; browsing does not reschedule tasks.
 
-Prerequisites: patched Java21, Maven3.9+, Node24 LTS/npm. Deployment requires MySQL8.4 LTS, Linux/systemd/Nginx and approved TLS/backup infrastructure. The tested local baseline is recorded in [ADR-001](docs/adr/ADR-001-tech-stack.md). Production acceptance remains separate.
+![Multi-year timeline with overview selection, period controls and historical report clips](docs/images/task-timeline-desktop.png)
 
-From repository root, build and check:
+### Report in words, advance through explicit states
+
+The update form asks for a written report. Submission, summarization and acceptance remain separate actions. Independent work items use an In progress / Completed selector.
+
+![Written report dialog without a completion-percentage control](docs/images/task-report-dialog.png)
+
+### Mobile and dark theme
+
+Cards retain status, responsibility and the latest update, with navigation and filters adapted to narrow screens.
+
+<p align="center"><img src="docs/images/task-cards-mobile-dark.png" width="320" alt="Task cards in the mobile dark theme"></p>
+
+## Quick start
+
+### 1. Prepare the build environment
+
+| Component | Requirement |
+| --- | --- |
+| Java | Patched Java 21 |
+| Maven | 3.9 or later |
+| Node.js | Node 24 LTS / npm; exact constraints in [frontend/package.json](frontend/package.json) |
+| Database | MySQL 8.4 LTS deployment baseline; isolated H2 for the local demo |
+
+From the repository root:
 
 ```powershell
 mvn -B -ntp -f backend/pom.xml verify
@@ -39,22 +69,38 @@ npm run build
 Set-Location ..
 ```
 
-`./scripts/verify.ps1` runs these same checks. `-Offline` uses only already cached dependencies without changing their versions.
+`./scripts/verify.ps1` runs the same checks. `-Offline` reuses cached dependencies without changing their versions. See [ADR-001](docs/adr/ADR-001-tech-stack.md) for the stack baseline.
 
-For a local synthetic-data review, first install frontend dependencies with `npm ci` as above. Then use the explicit H2 demo launcher (replace the executable paths with your installed patched Java21/Node24 runtimes):
+### 2. Start a local demo
+
+After installing dependencies, replace these paths with the runtimes installed on your machine:
 
 ```powershell
 ./scripts/start-demo.ps1 -Demo -JavaPath 'C:\your-jdk-21\bin\java.exe' -NodePath 'C:\your-node-24\node.exe' -MavenPath 'C:\your-maven\bin\mvn.cmd'
 ```
 
-With dependencies already installed, the local H2 demo also accepts Node22.23.4 or later in the Node22 line. Node24.22.1 or later in the Node24 line remains supported; the package engine, clean dependency installation and production baseline remain Node24. The installed Java21.0.2/Node22.23.4 executables were verified for this local demo only.
+The launcher uses an isolated H2 database, binds to loopback and securely prompts for an initial password. Open the frontend URL it reports. Accounts must change the password on first login; leadership and administrator accounts then enroll TOTP. **No fixed password is shipped.**
 
-The launcher builds the backend, securely prompts for a unique bootstrap password, generates a demo-only TOTP key if absent and protects its local copy with Windows DPAPI, and starts both processes in the background. It validates that the selected ports are free, binds to loopback and pins the database/attachments under `.task-storage/demo-<backend-port>/`; inherited database settings cannot redirect it to MySQL. It reports URLs, PIDs, log paths and the exact stop command without printing credentials. It installs no runtimes, services or dependencies. `-UseBuiltArtifacts` reuses an existing JAR after you have built/verified it. Use `-BackendPort 18080 -FrontendPort 15173` if the defaults8080/5173 are occupied; Vite targets the selected backend port.
+Account names, ports, shutdown, Node 22 compatibility and DPAPI key handling are documented in the [local Windows demo guide](docs/operations/local-demo.md). A healthy process still requires real login and workflow validation.
 
-The launcher removes inherited Spring configuration overrides rather than passing empty environment values, then restores the caller's environment, including absent values. Health readiness waits for account initialization before reporting the demo ready. Startup/configuration and process-identity regression probes are in `scripts/tests/`; process termination requires the exact executable and UTC creation timestamp in both Windows PowerShell5.1 and PowerShell7.
+### 3. Deploy a self-hosted instance
 
-Open the reported frontend URL. The empty demo database seeds `demo.leader`, `demo.head`, `demo.employee`, `demo.finance`, `demo.other`, `demo.group` and `demo.admin` using the bootstrap password you entered. Every account must change it on first login; leadership/admin accounts then enroll TOTP. No fixed password is shipped. Stop using the reported `./scripts/stop-demo.ps1 -StateFile '<reported-path>'` command, which checks process identity before terminating the demo process trees. Restarts on the same Windows user/machine reuse the DPAPI-protected demo key. Do not copy a demo database to another machine without its privately preserved original key. A conflicting key is rejected. Keys and passwords are never written to the PID state file.
+Follow [deployment and rollback](docs/operations/deployment.md) to configure Linux/systemd/Nginx, MySQL, HTTPS, external credentials and an independent key. Prepare [backup and recovery](docs/operations/backup-restore.md) and [monitoring](docs/operations/monitoring.md). `.env.example` documents configuration names; it is not automatically loaded.
 
-Production has a separate configuration: external MySQL credentials/key, Secure cookies, fixed HTTPS same origin, restricted files and no runtime migration privilege. `.env.example` documents names; it is not automatically loaded. Review [deployment/rollback](docs/operations/deployment.md), [backup/PITR](docs/operations/backup-restore.md), [monitoring](docs/operations/monitoring.md), [security](docs/security/security-baseline.md), [development](docs/development.md) and [user/admin guide](docs/operations/user-admin-guide.md). Scripts default to dry-run; they have not touched a real database or production service.
+## Documentation
 
-The preserved business baseline is one host department,0–2 collaborators, explicit cross-company agreement, five original KPI weights30/25/20/10/15,7day objections and personal KPI disabled. [API draft and limits](docs/api/contract-notes.md), [OpenAPI](docs/api/openapi.yaml), [requirements](docs/requirements/v15-tasks.md) and [ADR register](docs/adr/README.md) retain pending business decisions. New formulas/policies are simulations until approved.
+| Audience | Start here |
+| --- | --- |
+| Users and administrators | [Task UI and reporting](docs/operations/task-ui-guide.md) · [User/admin guide](docs/operations/user-admin-guide.md) |
+| Developers | [Development](docs/development.md) · [API notes](docs/api/contract-notes.md) · [OpenAPI](docs/api/openapi.yaml) |
+| Operators | [Deployment](docs/operations/deployment.md) · [Backups](docs/operations/backup-restore.md) · [Monitoring](docs/operations/monitoring.md) |
+| Evaluators | [Requirements](docs/requirements/v15-tasks.md) · [Implementation evidence](docs/implementation/) · [Release checklist](docs/release/v1.5-release-checklist.md) |
+| Architecture and security | [ADR register](docs/adr/README.md) · [Security baseline](docs/security/security-baseline.md) · [Vulnerability reporting](SECURITY.md) |
+
+The preserved business baseline is one host department, 0–2 collaborators and explicit cross-company agreement; the five original KPI weights are 30/25/20/10/15, objections last 7 days, and personal KPI is disabled by default. New formulas and policies remain simulations until approved.
+
+## License and contributing
+
+Original code is licensed under [GNU AGPL v3.0 only](LICENSE) (`AGPL-3.0-only`). Third-party components retain their own licenses; dependency inventories, SBOMs and distribution conditions are recorded in the [license review](docs/release/licenses/REVIEW.md). Network deployments of modified versions must provide the appropriate [corresponding source](docs/release/source-distribution.md).
+
+Read [CONTRIBUTING](CONTRIBUTING.md) before development and use the [security reporting process](SECURITY.md) for vulnerabilities. Publication and release status follow the [open-source checklist](docs/release/open-source-readiness.md).
