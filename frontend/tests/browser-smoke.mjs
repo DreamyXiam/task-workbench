@@ -11,7 +11,7 @@ let loggedIn=false,role='COMPANY_LEADER',expireTasks=false,adminReauthRequired=f
 const me=()=>({id:'fixture-user',name:'测试人员',accountSuffix:'0026',role,companyId:role==='GROUP_LEADER'||adminGlobal?null:'fixture-company',deptId:role==='GROUP_LEADER'?null:'fixture-dept',mustChangePassword:false,totpRequired:false,totpVerified:true,scopes:[{id:'leader',role:'COMPANY_LEADER',companyId:'fixture-company',companyName:'测试公司'},{id:'admin',role:'ADMIN',companyId:'fixture-company',companyName:'测试公司'}]})
 const task={id:'fixture-task',code:'RW-2026-001',title:'完成年度重点项目验收准备',content:'明确验收材料、核对交付成果，并按计划完成跨部门资料汇总。',companyId:'fixture-company',companyName:'测试公司',hostDeptId:'fixture-dept',hostDeptName:'综合管理部',priority:'HIGH',status:'IN_PROGRESS',deadline:'2026-12-31T18:00:00+08:00',version:3,allowedActions:['summarize','deadline','urge','comment','upload'],subTasks:[{id:'fixture-sub',deptId:'fixture-dept',deptName:'综合管理部',role:'HOST',ownerName:'测试人员',percent:45,status:'IN_PROGRESS',version:2,allowedActions:['progress','submit','extend','transfer']}],comments:[],progress:[],timeline:[{id:'event1',actionName:'确认分配',operatorName:'测试人员',createdAt:'2026-10-24T10:00:00+08:00',description:'已确认责任部门'}],attachments:[],deadlineRequests:[],collaborationRequests:[]}
 task.latestProgress='卡片展示的最新执行记录';task.progressSource='部门进度';task.reportedPercent=45;task.progressAt='2026-11-08T03:00:00Z';task.progressDeptName='综合管理部'
-task.createdAt='2026-10-24T10:00:00+08:00'
+task.createdAt='2026-01-01T10:00:00+08:00'
 task.progress=[{id:'report-first',subTaskId:'fixture-sub',deptId:'fixture-dept',note:'已开始核对资料',percent:10,createdAt:'2026-10-26T03:00:00Z'},{id:'report-latest',subTaskId:'fixture-sub',deptId:'fixture-dept',note:task.latestProgress,percent:45,createdAt:task.progressAt}]
 const companies=[{id:'fixture-company',name:'测试公司',companyCode:'TEST',enabled:true}]
 const departments=[{id:'fixture-dept',name:'综合管理部',companyId:'fixture-company',companyName:'测试公司'},{id:'fixture-other-dept',name:'第二部门',companyId:'fixture-other-company',companyName:'第二公司'}]
@@ -97,8 +97,28 @@ try{
    const beforeWrites=writes.length
    await page.getByRole('button',{name:'甘特图',exact:true}).click()
    await page.locator('.report-clip:not(.unreported)').last().waitFor()
+   const pointerWindow=page.getByRole('slider',{name:'时间指针'})
+   const visibleDays=async()=>Number(await pointerWindow.getAttribute('aria-valuemax'))-Number(await pointerWindow.getAttribute('aria-valuemin'))
+   assert.ok((await visibleDays())<=31,'year-long task defaults to a month instead of a compressed year')
+   await page.getByRole('button',{name:'全周期',exact:true}).click()
+   assert.ok((await visibleDays())>350,'full-cycle overview retains the year')
+   await page.getByRole('button',{name:'周',exact:true}).click();assert.equal(await visibleDays(),7)
+   await page.getByRole('button',{name:'日',exact:true}).click();assert.equal(await visibleDays(),1)
+   await page.getByRole('button',{name:'月',exact:true}).click()
+   await page.getByRole('button',{name:'下一时段'}).click();assert.ok((await page.locator('.window-label').innerText()).includes('2026-12'))
+   await page.getByRole('button',{name:'上一时段'}).click();assert.ok((await page.locator('.window-label').innerText()).includes('2026-11'))
+   await page.locator('input[aria-label="选择浏览日期"]').fill('2027-06-15')
+   await page.locator('.outside-window').click()
+   assert.ok((await page.locator('.window-label').innerText()).includes('2026-11'),'locate task returns to latest report month')
+   const overview=page.getByRole('slider',{name:'全周期视窗'}),overviewBox=await overview.boundingBox(),selection=await page.locator('.overview-window').boundingBox()
+   const beforeWindow=Number(await overview.getAttribute('aria-valuenow')),windowDays=await visibleDays()
+   await page.mouse.move(selection.x+selection.width/2,overviewBox.y+28);await page.mouse.down();await page.mouse.move(selection.x+selection.width/2-100,overviewBox.y+28,{steps:8});await page.mouse.up()
+   assert.ok(Number(await overview.getAttribute('aria-valuenow'))<beforeWindow,'drag overview to browse earlier dates')
+   assert.ok(Math.abs((await visibleDays())-windowDays)<.0001,'overview drag retains the window span')
+   await page.getByRole('button',{name:'今天',exact:true}).click()
    await page.getByRole('button',{name:'放大时间轴'}).click()
    await page.locator('.gantt-scroll').evaluate(el=>{el.scrollLeft=0})
+   await page.locator('.gantt-scroll').scrollIntoViewIfNeeded()
    const pointer=page.getByRole('slider',{name:'时间指针'}),box=await pointer.boundingBox()
    await page.mouse.move(box.x+40,box.y+45);await page.mouse.down();await page.mouse.move(box.x+160,box.y+45,{steps:8});await page.mouse.up()
    const moved=Number(await pointer.getAttribute('aria-valuenow'))
@@ -145,7 +165,7 @@ try{
     assert.ok((await page.locator('.report-inspector').innerText()).includes(task.latestProgress),'clip reveals actual report content')
     const pointer=page.getByRole('slider',{name:'时间指针'})
     await pointer.focus();await page.keyboard.press('Home')
-    assert.ok((await page.locator('.report-inspector').innerText()).includes('时间范围之外'),'before creation has no invented report')
+    assert.ok((await page.locator('.report-inspector').innerText()).includes('已开始核对资料'),'month starts with the actual prior report, not invented progress')
     const start=Number(await pointer.getAttribute('aria-valuenow'))
     await page.keyboard.press('ArrowRight')
     assert.ok(Number(await pointer.getAttribute('aria-valuenow'))>start,'keyboard scrubs time')
