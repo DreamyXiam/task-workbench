@@ -11,6 +11,7 @@ let loggedIn=false,role='COMPANY_LEADER',expireTasks=false,adminReauthRequired=f
 const me=()=>({id:'fixture-user',name:'测试人员',accountSuffix:'0026',role,companyId:role==='GROUP_LEADER'||adminGlobal?null:'fixture-company',deptId:role==='GROUP_LEADER'?null:'fixture-dept',mustChangePassword:false,totpRequired:false,totpVerified:true,scopes:[{id:'leader',role:'COMPANY_LEADER',companyId:'fixture-company',companyName:'测试公司'},{id:'admin',role:'ADMIN',companyId:'fixture-company',companyName:'测试公司'}]})
 const task={id:'fixture-task',code:'RW-2026-001',title:'完成年度重点项目验收准备',content:'明确验收材料、核对交付成果，并按计划完成跨部门资料汇总。',companyId:'fixture-company',companyName:'测试公司',hostDeptId:'fixture-dept',hostDeptName:'综合管理部',priority:'HIGH',status:'IN_PROGRESS',deadline:'2026-12-31T18:00:00+08:00',version:3,allowedActions:['summarize','deadline','urge','comment','upload'],subTasks:[{id:'fixture-sub',deptId:'fixture-dept',deptName:'综合管理部',role:'HOST',ownerName:'测试人员',percent:45,status:'IN_PROGRESS',version:2,allowedActions:['progress','submit','extend','transfer']}],comments:[],progress:[],timeline:[{id:'event1',actionName:'确认分配',operatorName:'测试人员',createdAt:'2026-10-24T10:00:00+08:00',description:'已确认责任部门'}],attachments:[],deadlineRequests:[],collaborationRequests:[]}
 task.latestProgress='卡片展示的最新执行记录';task.progressSource='部门进度';task.reportedPercent=45;task.progressAt='2026-11-08T03:00:00Z';task.progressDeptName='综合管理部'
+task.createdAt='2026-10-24T10:00:00+08:00'
 const companies=[{id:'fixture-company',name:'测试公司',companyCode:'TEST',enabled:true}]
 const departments=[{id:'fixture-dept',name:'综合管理部',companyId:'fixture-company',companyName:'测试公司'},{id:'fixture-other-dept',name:'第二部门',companyId:'fixture-other-company',companyName:'第二公司'}]
 page.on('pageerror',e=>issues.push(e.message))
@@ -77,6 +78,10 @@ try{
  await page.locator('.task-card').first().waitFor()
  assert.equal(await page.locator('.desktop-table').count(),0,'task center uses cards instead of the table')
  assert.ok((await page.locator('.task-card').first().innerText()).includes('卡片展示的最新执行记录'),'latest progress is visible without opening detail')
+ await page.getByRole('button',{name:'甘特图',exact:true}).click()
+ await page.locator('.time-bar').click()
+ await page.waitForURL('**/#/tasks/fixture-task')
+ await page.goto('http://127.0.0.1:5173/#/tasks')
  for(const theme of ['light','dark']){
   if(theme==='dark')await page.getByRole('button',{name:'切换为深色模式'}).click()
  for(const width of [375,390,768,1024,1440]){
@@ -88,6 +93,21 @@ try{
    const size=await page.evaluate(()=>({scroll:document.documentElement.scrollWidth,width:window.innerWidth}))
    assert.ok(size.scroll<=size.width,`overflow ${width} ${path}: ${JSON.stringify(size)}`)
    checks.push({theme,width,path,overflow:false});if(process.env.QA_SCREENSHOTS&&path==='/'&&[375,1440].includes(width)){await mkdir('tests/results',{recursive:true});await page.screenshot({path:`tests/results/dashboard-${theme}-${width}.png`,fullPage:true})}
+   if(path==='/tasks'){
+    await page.getByRole('button',{name:'甘特图',exact:true}).click()
+    await page.locator('.time-bar').waitFor()
+    assert.ok((await page.locator('.gantt-row').innerText()).includes(task.latestProgress))
+    assert.ok((await page.locator('.gantt-row').innerText()).includes('45%'))
+    assert.equal(await page.locator('.time-bar').getAttribute('href'),'#/tasks/fixture-task')
+    const ganttSize=await page.evaluate(()=>({scroll:document.documentElement.scrollWidth,width:window.innerWidth}))
+    assert.ok(ganttSize.scroll<=ganttSize.width,`gantt overflow ${theme} ${width}`)
+    await page.locator('.gantt-scroll').evaluate(el=>{el.scrollLeft=el.scrollWidth})
+    assert.ok(await page.locator('.gantt-scroll').evaluate(el=>el.scrollWidth<=el.clientWidth||el.scrollLeft>0),'timeline scrolls inside its container')
+    if(process.env.QA_SCREENSHOTS&&[375,1440].includes(width)){await mkdir('tests/results',{recursive:true});await page.screenshot({path:`tests/results/gantt-${theme}-${width}.png`,fullPage:true})}
+    await page.getByRole('button',{name:'卡片',exact:true}).click()
+    await page.locator('.task-card').waitFor()
+    checks.push({theme,width,path:'/tasks:gantt',overflow:false})
+   }
   }
  }
  }
