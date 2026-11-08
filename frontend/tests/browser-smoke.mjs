@@ -167,6 +167,8 @@ try{
     assert.equal(await page.locator('.detail-sidebar .comments-panel').count(),1)
     assert.equal(await page.locator('.key-work').count(),0,'standalone task reporting section is removed')
     assert.equal(await page.getByRole('tab',{name:'操作时间线',exact:true}).count(),0)
+    assert.equal(await page.getByRole('tab',{name:'进度记录',exact:true}).count(),0,'history is merged into task and execution')
+    assert.equal(await page.locator('#task-details #task-progress-records').count(),1)
     if(width>=1200){const main=await page.locator('.detail-main').boundingBox(),side=await page.locator('.detail-sidebar').boundingBox();assert.ok(side.x>=main.x+main.width,'task progress appears to the right on desktop')}
     if(process.env.QA_SCREENSHOTS&&[375,1440].includes(width)){await mkdir('tests/results',{recursive:true});await page.evaluate(()=>window.scrollTo(0,0));await page.screenshot({path:`tests/results/detail-sidebar-${theme}-${width}.png`,fullPage:true})}
    }
@@ -202,10 +204,12 @@ try{
  await page.setViewportSize({width:1440,height:1000})
  await page.goto('http://127.0.0.1:5173/#/tasks/fixture-task')
  await page.locator('.detail-hero').waitFor()
+ await page.getByRole('tab',{name:'附件与版本',exact:true}).click()
  await page.getByRole('button',{name:'查看进度记录 →',exact:true}).click()
  await page.getByText('推进情况：历史字段汇报仍可查看',{exact:true}).waitFor()
- assert.equal(await page.getByRole('tab',{name:'进度记录',exact:true}).getAttribute('aria-selected'),'true','sidebar history link opens progress records')
- await page.getByRole('tab',{name:'任务内容',exact:true}).click()
+ assert.equal(await page.getByRole('tab',{name:'任务与执行',exact:true}).getAttribute('aria-selected'),'true','sidebar history link opens the work pane containing progress records')
+ const historyPosition=await page.locator('#task-progress-records').boundingBox()
+ assert.ok(historyPosition.y>=64,'progress records are positioned below the fixed header')
  assert.ok(!/\d+%/.test(await page.locator('.main-content').innerText()),'task detail and work items show states only')
  assert.equal(await page.locator('.main-content .el-progress').count(),0)
  await page.getByRole('button',{name:'更新进度',exact:true}).click()
