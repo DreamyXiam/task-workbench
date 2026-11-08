@@ -106,6 +106,14 @@ import org.junit.jupiter.api.*;import org.springframework.boot.test.context.Spri
  @Test void employeeCannotGuessForeignTaskOrBypassPasswordChange()throws Exception{var login=mvc.perform(post("/api/v1/auth/login").with(csrf()).contentType("application/json").content("{\"account\":\"demo.employee\",\"password\":\"TestOnly-Synthetic12345\"}")).andExpect(status().isOk()).andReturn();var session=(MockHttpSession)login.getRequest().getSession(false);mvc.perform(get("/api/v1/tasks/99999").session(session)).andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("PASSWORD_CHANGE_REQUIRED"));}
 
  @Autowired TaskService tasks;@Autowired Records records;@Autowired org.springframework.security.crypto.password.PasswordEncoder passwords;
+ @Test @org.springframework.transaction.annotation.Transactional void taskListReturnsLatestVisibleProgressForCards()throws Exception{
+  var actor=new Policy.Actor(2,"COMPANY_LEADER",1,null,2);
+  var task=tasks.create(actor,Records.map("title","Card progress fixture","content","Synthetic","companyId",1,"hostDeptId",3,"collaboratorDeptIds",java.util.List.of(4),"deadline",java.time.Instant.now().plusSeconds(3600).toString()));
+  long id=Jsons.number(task.get("id"));tasks.taskAction(actor,id,"confirm-assign",java.util.Map.of());
+  for(var sub:records.children(id,"SUB_TASK")){int dept=Jsons.integer(sub.get("deptId"));var head=new Policy.Actor(dept==3?3:5,"DEPT_HEAD",1,dept,dept==3?3:5);tasks.subAction(head,Jsons.number(sub.get("id")),"receive",java.util.Map.of());tasks.subAction(head,Jsons.number(sub.get("id")),"progress",Records.map("percent",dept==3?20:60,"note",dept==3?"OFFICE_PRIVATE":"FINANCE_LATEST"));}
+  mvc.perform(get("/api/v1/tasks").session(session("demo.finance")).param("keyword","Card progress fixture")).andExpect(status().isOk()).andExpect(jsonPath("$.data.items[0].latestProgress").value("FINANCE_LATEST")).andExpect(jsonPath("$.data.items[0].reportedPercent").value(60));
+  mvc.perform(get("/api/v1/sub-tasks/mine").session(session("demo.finance")).param("keyword","Card progress fixture")).andExpect(status().isOk()).andExpect(jsonPath("$.data.items[0].latestProgress").value("FINANCE_LATEST"));
+ }
  @Autowired org.springframework.jdbc.core.JdbcTemplate jdbc;
  @Test @org.springframework.transaction.annotation.Transactional void departmentStatsExcludeDraftAssignmentsAndPreserveOverdueFacts()throws Exception{
   var head=session("demo.head");var actor=new Policy.Actor(2,"COMPANY_LEADER",1,null,2);
