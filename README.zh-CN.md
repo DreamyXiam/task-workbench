@@ -1,35 +1,62 @@
 # 任务工作台 V1.5
 
-简体中文 | [English](README.md)
+面向组织协同的任务工作台：从任务布置、部门执行、文字汇报到成果验收，在同一个工作空间追踪责任与进展。
 
-## 当前任务界面
+**简体中文** · [English](README.md) · [操作指南](docs/operations/task-ui-guide.md) · [部署文档](docs/operations/deployment.md) · [构建检查](https://github.com/DreamyXiam/task-workbench/actions/workflows/verify.yml)
 
-- **状态展示**：任务卡片、工作概览、甘特图、详情和汇报历史以任务状态及文字进展展示，不显示任务进度百分比和百分比进度条。
-- **整卡查看详情**：点击任务卡片任意位置即可进入详情，支持键盘 Enter 和新标签页打开。
-- **文字汇报**：更新进展时填写说明；接收、提交成果、汇总和验收推动流程状态。独立子任务通过“进行中／已完成”选择器更新状态。
-- **长周期时间轴**：全周期概览配合月／周／日视窗，默认当前月份；支持拖动概览选框、时间指针、轨道平移、缩放和日期跳转。跨年任务按所选时段展开，汇报按实际记录时间分段。
+> **开发预览版**：可用于源码审查和隔离环境试用，生产验收尚未完成。实际范围与待办见[验收矩阵](docs/testing/acceptance-matrix.md)和[发布清单](docs/release/v1.5-release-checklist.md)。
 
-操作方式及接口兼容说明见[任务界面与汇报指南](docs/operations/task-ui-guide.md)。本项目仍为源码预览版，验收与发布边界以下文为准。
+![任务中心：整卡导航、任务状态与最新文字进展](docs/images/task-cards-desktop.png)
 
-## 开源预览版
+## 核心能力
 
-本项目面向希望自行部署组织协同工作台的团队，覆盖部门任务分派、跨公司协作、成果验收和可审计的 KPI 快照。当前定位为开发预览版，生产验收仍未完成。
+| 能力 | 使用方式 |
+| --- | --- |
+| 任务布置与责任分工 | 单条或批量布置，明确主办、协办、负责人和截止时间 |
+| 卡片式任务中心 | 查看状态及最新进展，点击卡片任意位置进入详情 |
+| 文字汇报与成果验收 | 汇报说明留痕，通过接收、提交、汇总和验收推进状态 |
+| 多年任务时间轴 | 全周期概览与月／周／日视窗，按汇报时间分段浏览 |
+| 独立子任务 | 将工作拆分到具体人员，通过“进行中／已完成”更新状态 |
+| 组织权限与审计 | 公司、部门、岗位范围控制，授权操作、附件与历史记录 |
+| 协作与考核 | 跨公司协作确认、通知、统计及可追溯的 KPI 快照 |
+| 浅色、深色与手机布局 | 同一套工作流适配桌面与窄屏 |
 
-项目原创代码采用 [GNU AGPL v3.0](LICENSE)（仅第 3 版，`AGPL-3.0-only`）。第三方组件保留各自许可证，依赖清单与分发条件见下方审查记录。参与开发请阅读[贡献指南](CONTRIBUTING.md)，安全问题请按[安全报告说明](SECURITY.md)私下报告；公开前需完成[开源准备清单](docs/release/open-source-readiness.md)。加入许可证不代表已经公开发布或提供生产支持。
+任务界面展示**流程状态与文字进展**，不显示单项任务进度百分比或百分比进度条。历史数值保留兼容；统计完成率和 KPI 指标按各自口径计算。
 
-依赖声明、SBOM 和上游声明已完成清点，见[许可证审查记录](docs/release/licenses/REVIEW.md)。本预览版仅发布源码；二进制发布仍有额外的署名和对应源码交付条件。通过网络部署修改版时，请设置指向实际部署版本的[对应源码入口](docs/release/source-distribution.md)。
+## 界面预览
 
-![合成数据员工工作台](docs/images/oss-demo-employee-desktop.png)
+以下配图由当前前端渲染，使用合成 API 与虚构演示记录，不包含真实业务数据或登录凭据。截图用于说明界面，不代表真实后端或生产验收通过。
 
-截图来自隔离 H2 数据库及虚构员工，不含真实业务记录。[干净环境演示证据](docs/testing/evidence/oss-clean-demo-20261101.json)涵盖真实登录与窄屏检查，不代表生产验收通过。
+### 多年任务：看全局，也能查看每次汇报
 
-任务工作台是一个覆盖任务生命周期的源代码项目，提供基于作用范围的 Session/CSRF 安全机制、不可变的 KPI 考核结果，以及 Vue 3/TypeScript 工作台。当前代码可供审查，**尚未通过生产环境验收**。实际范围和验证限制请查阅[验收矩阵](docs/testing/acceptance-matrix.md)、[实现与验证记录](docs/implementation/)和[发布检查清单](docs/release/v1.5-release-checklist.md)。
+上方概览保留多年跨度，主轨道默认展开当前月份。拖动选框、切换周／日或跳转日期后，点击片段查看当时的汇报内容。浏览操作不会调整任务期限。
 
-## 环境要求
+![多年任务时间轴：概览选框、月周日视窗和汇报片段](docs/images/task-timeline-desktop.png)
 
-构建需要安装已修补的 Java 21、Maven 3.9 或更高版本，以及 Node 24 LTS/npm。部署需要 MySQL 8.4 LTS、Linux/systemd/Nginx 和经过认可的 TLS、备份基础设施。本地验证基线见 [ADR-001](docs/adr/ADR-001-tech-stack.md)；生产验收单独进行。
+### 更新进展：填写说明，按业务流程推进状态
 
-在项目根目录执行构建与检查：
+进展表单只填写说明；成果提交、汇总上报和验收分别保留独立操作。独立子任务可直接选择“进行中”或“已完成”。
+
+![文字进展汇报表单，无百分比输入控件](docs/images/task-report-dialog.png)
+
+### 手机端与深色主题
+
+任务卡片保留状态、责任信息和最新汇报；导航与筛选适配窄屏。
+
+<p align="center"><img src="docs/images/task-cards-mobile-dark.png" width="320" alt="手机深色主题下的任务卡片"></p>
+
+## 快速开始
+
+### 1. 准备构建环境
+
+| 组件 | 要求 |
+| --- | --- |
+| Java | 已修补的 Java 21 |
+| Maven | 3.9 或更高版本 |
+| Node.js | Node 24 LTS / npm；精确要求见 [frontend/package.json](frontend/package.json) |
+| 数据库 | 部署基线为 MySQL 8.4 LTS；本地演示使用独立 H2 |
+
+在仓库根目录执行：
 
 ```powershell
 mvn -B -ntp -f backend/pom.xml verify
@@ -42,30 +69,38 @@ npm run build
 Set-Location ..
 ```
 
-`./scripts/verify.ps1` 执行相同的检查；加上 `-Offline` 时，只使用已缓存的依赖，不改变依赖版本。
+也可运行 `./scripts/verify.ps1`；`-Offline` 只复用缓存，不改变依赖版本。技术选型见 [ADR-001](docs/adr/ADR-001-tech-stack.md)。
 
-## 本地演示
+### 2. 启动本地演示
 
-本地演示使用独立的 H2 数据库和合成数据。先按上述步骤安装前端依赖，再将示例中的可执行文件路径替换为本机已安装的、已修补的 Java 21 和 Node 24 路径：
+先完成依赖安装，再将下方路径替换为本机已安装的运行时：
 
 ```powershell
 ./scripts/start-demo.ps1 -Demo -JavaPath 'C:\your-jdk-21\bin\java.exe' -NodePath 'C:\your-node-24\node.exe' -MavenPath 'C:\your-maven\bin\mvn.cmd'
 ```
 
-已安装依赖的本地 H2 演示也接受 Node 22 系列中的 22.23.4 及以上版本，或 Node 24 系列中的 24.22.1 及以上版本。依赖安装和生产环境基线仍为 Node 24；Java 21.0.2/Node 22.23.4 的验证仅适用于本地演示。
+启动器使用隔离的 H2 数据库，仅监听本机回环地址，并安全提示输入初始密码。按输出的前端地址访问；账号首次登录需修改密码，领导及管理员账号随后绑定 TOTP。**项目不提供固定密码。**
 
-启动脚本会构建后端，安全提示输入独立的初始密码；如无演示专用 TOTP 密钥，会生成密钥并用 Windows DPAPI 保护本地副本，然后在后台启动前后端。脚本会检查端口、仅绑定本机回环地址，并将数据库和附件固定在 `.task-storage/demo-<后端端口>/` 下，继承的数据库配置无法将演示指向 MySQL。脚本会输出访问地址、进程 ID、日志位置和停止命令，不打印凭据，也不会安装运行时、服务或依赖。
+可用账号、端口、停止方式、Node 22 兼容范围和 DPAPI 密钥管理见 [Windows 本地演示指南](docs/operations/local-demo.zh-CN.md)。健康检查通过不等于已完成真实登录和业务验收。
 
-已构建并验证 JAR 后，可加 `-UseBuiltArtifacts` 复用它。如果默认端口 8080/5173 已被占用，可指定 `-BackendPort 18080 -FrontendPort 15173`；Vite 会连接所选后端端口。
+### 3. 部署自托管实例
 
-脚本会移除继承的 Spring 配置覆盖项，并在结束时恢复调用进程原有的环境状态。只有账号初始化完成、健康检查就绪后才会报告启动成功。启动配置和进程身份回归脚本位于 `scripts/tests/`；在 Windows PowerShell 5.1 和 PowerShell 7 中停止进程时，均会核对可执行文件和 UTC 创建时间。
+按[部署与回滚指南](docs/operations/deployment.md)配置 Linux/systemd/Nginx、MySQL、HTTPS、外部凭据及独立密钥；同时准备[备份与恢复](docs/operations/backup-restore.md)和[监控](docs/operations/monitoring.md)。`.env.example` 仅说明配置项，不会自动加载。
 
-打开启动脚本输出的前端地址。空的演示数据库会使用输入的初始密码创建 `demo.leader`、`demo.head`、`demo.employee`、`demo.finance`、`demo.other`、`demo.group` 和 `demo.admin`。所有账号首次登录时必须修改密码；领导及管理员账号随后需要绑定 TOTP。项目不提供固定密码。
+## 文档导航
 
-使用启动时输出的 `./scripts/stop-demo.ps1 -StateFile '<输出的状态文件路径>'` 停止演示。脚本会在终止进程树前核对进程身份。同一 Windows 用户在同一台机器上重启时会复用受 DPAPI 保护的演示密钥；迁移演示数据库时需私下妥善保留原密钥，冲突密钥会被拒绝。进程状态文件不会保存密钥或密码。
+| 读者 | 入口 |
+| --- | --- |
+| 使用者与管理员 | [任务界面与汇报](docs/operations/task-ui-guide.md) · [用户及管理员指南](docs/operations/user-admin-guide.md) |
+| 开发者 | [开发说明](docs/development.md) · [API 契约](docs/api/contract-notes.md) · [OpenAPI](docs/api/openapi.yaml) |
+| 运维人员 | [部署](docs/operations/deployment.md) · [备份](docs/operations/backup-restore.md) · [监控](docs/operations/monitoring.md) |
+| 评估与验收 | [需求](docs/requirements/v15-tasks.md) · [实现记录](docs/implementation/) · [发布清单](docs/release/v1.5-release-checklist.md) |
+| 架构与安全 | [ADR 登记](docs/adr/README.md) · [安全基线](docs/security/security-baseline.md) · [安全报告](SECURITY.md) |
 
-## 部署与业务基线
+现有业务基线：一个主办部门、0–2 个协办部门，跨公司协办须明确同意；原有五项 KPI 权重为 30/25/20/10/15，异议期为 7 天，个人 KPI 默认关闭。新公式和策略在批准前作为模拟方案。
 
-生产环境需要独立配置外部 MySQL 凭据和密钥、Secure Cookie、固定的 HTTPS 同源地址、受限文件访问权限，并禁止运行时账号拥有迁移权限。`.env.example` 列出配置项名称，不会自动加载。请查阅[部署与回滚](docs/operations/deployment.md)、[备份与时间点恢复](docs/operations/backup-restore.md)、[监控](docs/operations/monitoring.md)、[安全基线](docs/security/security-baseline.md)、[开发说明](docs/development.md)和[用户及管理员指南](docs/operations/user-admin-guide.md)。相关脚本默认只做预演，尚未操作真实数据库或生产服务。
+## 开源与参与
 
-现有业务基线为：一个主办部门、0–2 个协办部门、跨公司协办须明确同意、原有五项 KPI 权重为 30/25/20/10/15、异议期为 7 天，个人 KPI 默认关闭。[API 草案及限制](docs/api/contract-notes.md)、[OpenAPI](docs/api/openapi.yaml)、[需求清单](docs/requirements/v15-tasks.md)和 [ADR 登记](docs/adr/README.md)记录了尚待决定的业务事项。新公式和策略在批准前均作为模拟方案。
+原创代码采用 [GNU AGPL v3.0 only](LICENSE)（`AGPL-3.0-only`）。第三方组件保留各自许可证，依赖清单、SBOM 与分发条件见[许可证审查记录](docs/release/licenses/REVIEW.md)。网络部署修改版须提供与实际版本对应的[源码入口](docs/release/source-distribution.md)。
+
+参与开发请阅读[贡献指南](CONTRIBUTING.md)；报告漏洞请使用[安全报告流程](SECURITY.md)。公开和发布状态以[开源准备清单](docs/release/open-source-readiness.md)为准。
