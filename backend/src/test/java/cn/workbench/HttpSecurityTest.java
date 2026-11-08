@@ -58,12 +58,26 @@ import org.junit.jupiter.api.*;import org.springframework.boot.test.context.Spri
   assertThat(RolePermissions.required(new org.springframework.mock.web.MockHttpServletRequest("GET","/api/v1/admin/users"))).isEqualTo("USER_ADMIN");
   assertThat(RolePermissions.required(new org.springframework.mock.web.MockHttpServletRequest("POST","/api/v1/organization/departments"))).isEqualTo("UNMAPPED");
   assertThat(RolePermissions.required(new org.springframework.mock.web.MockHttpServletRequest("GET","/api/v1/unknown-future-api"))).isEqualTo("UNMAPPED");
+  var withContext=new org.springframework.mock.web.MockHttpServletRequest("GET","/workbench/api/v1/tasks");withContext.setContextPath("/workbench");assertThat(RolePermissions.required(withContext)).isEqualTo("TASK_VIEW");
  }
  @Test @org.springframework.transaction.annotation.Transactional void userAdministrationKeepsScopedCompanyDirectoryWhenOrgManagementIsDisabled()throws Exception{
   jdbc.update("UPDATE user_scope SET company_id=NULL WHERE user_id=1");var global=session("demo.admin");global.setAttribute("totpAt",System.currentTimeMillis());
   var user=Records.map("account","company-options-admin","name","公司管理员","passwordHash",passwords.encode("TestOnly-Synthetic12345"),"mustChangePassword",false);db.insertUser(user);db.insertScope(Records.map("userId",user.get("id"),"role","ADMIN","companyId",1,"deptId",null));
   mvc.perform(put("/api/v1/admin/role-permissions/ADMIN").session(global).with(csrf()).header("Idempotency-Key",java.util.UUID.randomUUID().toString()).contentType("application/json").content("{\"version\":-1,\"disabled\":[\"ORG_ADMIN\"]}")).andExpect(status().isOk());
   var companyAdmin=session("company-options-admin");mvc.perform(get("/api/v1/admin/companies").session(companyAdmin)).andExpect(status().isOk());mvc.perform(get("/api/v1/admin/users").session(companyAdmin)).andExpect(status().isOk());mvc.perform(get("/api/v1/admin/departments").session(companyAdmin)).andExpect(status().isForbidden());
+ }
+ @Test void passwordChangeRequirementAppliesUnderServletContextPath()throws Exception{
+  var login=mvc.perform(post("/api/v1/auth/login").with(csrf()).contentType("application/json").content("{\"account\":\"demo.employee\",\"password\":\"TestOnly-Synthetic12345\"}")).andExpect(status().isOk()).andReturn();
+  var current=(MockHttpSession)login.getRequest().getSession(false);
+  mvc.perform(get("/workbench/api/v1/tasks").contextPath("/workbench").session(current)).andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("PASSWORD_CHANGE_REQUIRED"));
+ }
+ @Test @org.springframework.transaction.annotation.Transactional void disabledTaskViewBlocksTaskClassificationEvenWhenKpiEnabled()throws Exception{
+  jdbc.update("UPDATE user_scope SET company_id=NULL WHERE user_id=1");var global=session("demo.admin");global.setAttribute("totpAt",System.currentTimeMillis());
+  var task=tasks.create(new Policy.Actor(2,"COMPANY_LEADER",1,null,2),Records.map("title","权限分类测试","content","测试","companyId",1,"hostDeptId",3,"deadline",java.time.Instant.now().plusSeconds(3600).toString()));
+  mvc.perform(put("/api/v1/admin/role-permissions/COMPANY_LEADER").session(global).with(csrf()).header("Idempotency-Key",java.util.UUID.randomUUID().toString()).contentType("application/json").content("{\"version\":-1,\"disabled\":[\"TASK_VIEW\"]}")).andExpect(status().isOk());
+  var leader=session("demo.leader");String url="/api/v1/tasks/"+task.get("id")+"/classification";
+  mvc.perform(get(url).session(leader)).andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("ROLE_PERMISSION_DENIED"));
+  mvc.perform(post(url).session(leader).with(csrf()).header("Idempotency-Key",java.util.UUID.randomUUID().toString()).contentType("application/json").content("{}")).andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("ROLE_PERMISSION_DENIED"));
  }
  @Test void csrfRejectsForgedLoginBeforeMutation()throws Exception{mvc.perform(post("/api/v1/auth/login").contentType("application/json").content("{\"account\":\"demo.employee\",\"password\":\"TestOnly-Synthetic12345\"}")).andExpect(status().isForbidden());}
  @Test void unauthenticatedCannotReadTasks()throws Exception{mvc.perform(get("/api/v1/tasks")).andExpect(status().isUnauthorized());}

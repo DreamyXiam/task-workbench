@@ -14,6 +14,12 @@ import static cn.workbench.Records.map;
 @org.springframework.test.context.TestExecutionListeners(value={org.springframework.test.context.support.DependencyInjectionTestExecutionListener.class,org.springframework.test.context.transaction.TransactionalTestExecutionListener.class},mergeMode=org.springframework.test.context.TestExecutionListeners.MergeMode.REPLACE_DEFAULTS)
 @ActiveProfiles("test") @Transactional class OrganizationChangesTest {
  @Autowired Store db;@Autowired JdbcTemplate jdbc;@Autowired OrganizationController organizations;@Autowired OrganizationChangesController controller;@Autowired OrganizationChanges changes;@Autowired Policy policy;@Autowired Records records;@Autowired TaskService tasks;@Autowired Writes writes;
+ @Test void delegationPathUsesServletContextWithoutExpandingPermissions(){
+  var actor=new Policy.Actor(4,"DEPT_HEAD",1,3,3,9L,3L,Set.of("receive"));
+  var allowed=new MockHttpServletRequest("POST","/workbench/api/v1/sub-tasks/7/receive");allowed.setContextPath("/workbench");
+  var forbidden=new MockHttpServletRequest("POST","/workbench/api/v1/sub-tasks/7/assign");forbidden.setContextPath("/workbench");
+  assertThat(changes.allowedPath(allowed,actor)).isTrue();assertThat(changes.allowedPath(forbidden,actor)).isFalse();
+ }
  @Test void expiredAndOnLeaveAppointmentsAreNotEffective(){jdbc.update("UPDATE user_scope SET valid_until=? WHERE id=3",java.sql.Timestamp.from(Instant.now().minusSeconds(60)));assertThat(db.scope(3,3)).isNull();jdbc.update("UPDATE user_scope SET valid_until=NULL,employment_status='ON_LEAVE' WHERE id=3");assertThat(db.scope(3,3)).isNull();}
  @Test void appointmentDefaultsRemainActiveAndEffective(){assertThat(jdbc.queryForMap("SELECT employment_status,appointment_type,version FROM user_scope WHERE id=3")).containsEntry("employment_status","ACTIVE").containsEntry("appointment_type","PRIMARY").containsEntry("version",0);assertThat(db.scope(3,3)).isNotNull();}
 
