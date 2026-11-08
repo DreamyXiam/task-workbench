@@ -2,12 +2,118 @@ package cn.workbench;
 import org.junit.jupiter.api.*;import org.springframework.boot.test.context.SpringBootTest;import org.springframework.test.context.ActiveProfiles;import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;import org.springframework.beans.factory.annotation.Autowired;import org.springframework.test.web.servlet.MockMvc;import org.springframework.mock.web.MockHttpSession;import org.springframework.test.web.servlet.MvcResult;import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;import static org.assertj.core.api.Assertions.*;
 @SpringBootTest(properties={"task.bootstrap-password=TestOnly-Synthetic12345","task.totp-key=AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8="}) @org.springframework.test.context.TestExecutionListeners(value={org.springframework.test.context.support.DependencyInjectionTestExecutionListener.class,org.springframework.test.context.transaction.TransactionalTestExecutionListener.class},mergeMode=org.springframework.test.context.TestExecutionListeners.MergeMode.REPLACE_DEFAULTS) @ActiveProfiles("test") @AutoConfigureMockMvc class HttpSecurityTest {
  @Autowired MockMvc mvc;@Autowired Store db;
+ @Test @org.springframework.transaction.annotation.Transactional void overviewFiltersAttentionBeforeLimitingAndKeepsCompanyScope()throws Exception{
+  var leader=session("demo.leader");var actor=new Policy.Actor(2,"COMPANY_LEADER",1,null,2);
+  var important=tasks.create(actor,Records.map("title","临期需关注","content","测试","companyId",1,"hostDeptId",3,"deadline",java.time.Instant.now().plusSeconds(3600).toString()));
+  for(int i=0;i<6;i++)tasks.create(actor,Records.map("title","普通任务"+i,"content","测试","companyId",1,"hostDeptId",3,"deadline",java.time.Instant.now().plusSeconds(864000).toString()));
+  tasks.create(new Policy.Actor(7,"GROUP_LEADER",null,null,7),Records.map("title","外公司机密","content","测试","companyId",2,"hostDeptId",5,"deadline",java.time.Instant.now().plusSeconds(3600).toString()));
+  mvc.perform(get("/api/v1/stats/overview").session(leader).param("focus","attention")).andExpect(status().isOk()).andExpect(jsonPath("$.data.recentTasks.length()").value(1)).andExpect(jsonPath("$.data.recentTasks[0].id").value(important.get("id"))).andExpect(jsonPath("$.data.recentTasks[0].attentionFlags[0]").value("3天内到期"));
+  mvc.perform(get("/api/v1/stats/overview").session(leader).param("focus","invalid")).andExpect(status().isUnprocessableEntity());
+ }
+ @Test @org.springframework.transaction.annotation.Transactional void customFieldsFollowTaskAuthorizationAndFeaturePermission()throws Exception{
+  var leader=session("demo.leader");var head=session("demo.head");var employee=session("demo.employee");
+  String body="{\"title\":\"重点工作\",\"content\":\"测试\",\"companyId\":1,\"hostDeptId\":3,\"deadline\":\""+java.time.Instant.now().plusSeconds(7200)+"\",\"keyWork\":true,\"customFields\":[{\"id\":\"problem\",\"name\":\"问题\",\"type\":\"TEXT\",\"required\":true}]}";
+  var result=mvc.perform(post("/api/v1/tasks").session(leader).with(csrf()).header("Idempotency-Key",java.util.UUID.randomUUID().toString()).contentType("application/json").content(body)).andExpect(status().isOk()).andExpect(jsonPath("$.data.keyWorkData.fields[0].name").value("问题")).andReturn();
+  var root=new com.fasterxml.jackson.databind.ObjectMapper().readTree(result.getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8));long id=root.path("data").path("id").asLong();int version=root.path("data").path("version").asInt();
+  mvc.perform(get("/api/v1/tasks").session(leader).param("keyWork","true")).andExpect(status().isOk()).andExpect(jsonPath("$.data.total").value(1));
+  mvc.perform(get("/api/v1/tasks/"+id).session(employee)).andExpect(status().isForbidden());
+  mvc.perform(post("/api/v1/tasks/"+id+"/confirm-assign").session(leader).with(csrf()).header("Idempotency-Key",java.util.UUID.randomUUID().toString()).contentType("application/json").content("{}")).andExpect(status().isOk());
+  var sub=records.children(id,"SUB_TASK").getFirst();tasks.subAction(new Policy.Actor(3,"DEPT_HEAD",1,3,3),Jsons.number(sub.get("id")),"receive",java.util.Map.of());
+  mvc.perform(post("/api/v1/tasks/"+id+"/key-work/fill").session(head).with(csrf()).header("Idempotency-Key",java.util.UUID.randomUUID().toString()).contentType("application/json").content("{\"version\":"+(version+1)+",\"values\":{\"problem\":\"待解决\"}}" )).andExpect(status().isOk());
+  mvc.perform(get("/api/v1/tasks/"+id).session(head)).andExpect(status().isOk()).andExpect(jsonPath("$.data.keyWorkData.values.problem").value("待解决")).andExpect(jsonPath("$.data.keyWorkHistory[1].actorName").exists());
+  mvc.perform(post("/api/v1/tasks/"+id+"/key-work/feedback").session(head).with(csrf()).header("Idempotency-Key",java.util.UUID.randomUUID().toString()).contentType("application/json").content("{\"version\":"+(version+2)+",\"coordinationStatus\":\"RESOLVED\",\"feedback\":\"越权\"}")).andExpect(status().isForbidden());
+ }
+ @Test @org.springframework.transaction.annotation.Transactional void manualWorkItemCanBeAssignedAndUpdatedThroughApi()throws Exception{
+  var head=session("demo.head");var employee=session("demo.employee");var actor=new Policy.Actor(2,"COMPANY_LEADER",1,null,2);
+  var task=tasks.create(actor,Records.map("title","API子任务主任务","content","测试","companyId",1,"hostDeptId",3,"deadline",java.time.Instant.now().plusSeconds(7200).toString()));long taskId=Jsons.number(task.get("id"));
+  tasks.taskAction(actor,taskId,"confirm-assign",java.util.Map.of());
+  String body="{\"title\":\"整理材料\",\"deptId\":3,\"ownerId\":4,\"deadline\":\""+java.time.Instant.now().plusSeconds(3600)+"\"}";
+  var result=mvc.perform(post("/api/v1/tasks/"+taskId+"/work-items").session(head).with(csrf()).header("Idempotency-Key",java.util.UUID.randomUUID().toString()).contentType("application/json").content(body)).andExpect(status().isOk()).andExpect(jsonPath("$.data.title").value("整理材料")).andReturn();
+  var root=new com.fasterxml.jackson.databind.ObjectMapper().readTree(result.getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8));long itemId=root.path("data").path("id").asLong();
+  mvc.perform(get("/api/v1/tasks/"+taskId).session(employee)).andExpect(status().isOk()).andExpect(jsonPath("$.data.workItems[0].title").value("整理材料"));
+  mvc.perform(get("/api/v1/sub-tasks/mine").session(employee).param("keyword","整理材料")).andExpect(status().isOk()).andExpect(jsonPath("$.data.total").value(1));
+  mvc.perform(post("/api/v1/work-items/"+itemId).session(employee).with(csrf()).header("Idempotency-Key",java.util.UUID.randomUUID().toString()).contentType("application/json").content("{\"version\":0,\"percent\":50}")).andExpect(status().isOk()).andExpect(jsonPath("$.data.percent").value(50));
+ }
+ @Test @org.springframework.transaction.annotation.Transactional void configuredRolePermissionIsEnforcedAndRevokesSessions()throws Exception{
+  jdbc.update("UPDATE user_scope SET company_id=NULL WHERE user_id=1");var global=session("demo.admin");global.setAttribute("totpAt",System.currentTimeMillis());var head=session("demo.head");
+  mvc.perform(get("/api/v1/tasks").session(head)).andExpect(status().isOk());
+  mvc.perform(put("/api/v1/admin/role-permissions/DEPT_HEAD").session(global).with(csrf()).header("Idempotency-Key",java.util.UUID.randomUUID().toString()).contentType("application/json").content("{\"version\":-1,\"disabled\":[\"TASK_VIEW\"]}")).andExpect(status().isOk());
+  mvc.perform(get("/api/v1/tasks").session(head)).andExpect(status().isUnauthorized());
+  var fresh=session("demo.head");mvc.perform(get("/api/v1/tasks").session(fresh)).andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("ROLE_PERMISSION_DENIED"));
+  mvc.perform(get("/api/v1/sub-tasks/mine").session(fresh)).andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("ROLE_PERMISSION_DENIED"));
+  mvc.perform(get("/api/v1/stats/dept").session(fresh)).andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("ROLE_PERMISSION_DENIED"));
+  mvc.perform(put("/api/v1/admin/role-permissions/DEPT_HEAD").session(global).with(csrf()).header("Idempotency-Key",java.util.UUID.randomUUID().toString()).contentType("application/json").content("{\"version\":-1,\"disabled\":[]}")).andExpect(status().isConflict());
+  mvc.perform(put("/api/v1/admin/role-permissions/DEPT_HEAD").session(fresh).with(csrf()).header("Idempotency-Key",java.util.UUID.randomUUID().toString()).contentType("application/json").content("{\"version\":0,\"disabled\":[]}")).andExpect(status().isForbidden());
+  mvc.perform(put("/api/v1/admin/role-permissions/ADMIN").session(global).with(csrf()).header("Idempotency-Key",java.util.UUID.randomUUID().toString()).contentType("application/json").content("{\"version\":-1,\"disabled\":[\"TASK_VIEW\"]}")).andExpect(status().isOk());
+  mvc.perform(get("/api/v1/admin/role-permissions").session(global)).andExpect(status().isOk());
+  mvc.perform(get("/api/v1/tasks").session(global)).andExpect(status().isOk());
+ }
+ @Test @org.springframework.transaction.annotation.Transactional void permissionSwitchesDoNotGrantExistingRoleForbiddenActions()throws Exception{
+  var employee=session("demo.employee");String body="{\"title\":\"越权任务\",\"content\":\"测试\",\"companyId\":1,\"hostDeptId\":3,\"deadline\":\""+java.time.Instant.now().plusSeconds(3600)+"\"}";
+  mvc.perform(post("/api/v1/tasks").session(employee).with(csrf()).header("Idempotency-Key",java.util.UUID.randomUUID().toString()).contentType("application/json").content(body)).andExpect(status().isForbidden());
+ }
+ @Test @org.springframework.transaction.annotation.Transactional void companyAdministratorCanBeRestrictedWithoutLockingOutGlobalAdministrator()throws Exception{
+  jdbc.update("UPDATE user_scope SET company_id=NULL WHERE user_id=1");var global=session("demo.admin");global.setAttribute("totpAt",System.currentTimeMillis());
+  var user=Records.map("account","company-admin-test","name","公司管理员","passwordHash",passwords.encode("TestOnly-Synthetic12345"),"mustChangePassword",false);db.insertUser(user);db.insertScope(Records.map("userId",user.get("id"),"role","ADMIN","companyId",1,"deptId",null));
+  var companyAdmin=session("company-admin-test");
+  mvc.perform(put("/api/v1/admin/role-permissions/ADMIN").session(global).with(csrf()).header("Idempotency-Key",java.util.UUID.randomUUID().toString()).contentType("application/json").content("{\"version\":-1,\"disabled\":[\"TASK_VIEW\",\"USER_ADMIN\"]}")).andExpect(status().isOk());
+  mvc.perform(get("/api/v1/tasks").session(companyAdmin)).andExpect(status().isUnauthorized());
+  var fresh=session("company-admin-test");mvc.perform(get("/api/v1/tasks").session(fresh)).andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("ROLE_PERMISSION_DENIED"));
+  mvc.perform(get("/api/v1/admin/users").session(fresh)).andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("ROLE_PERMISSION_DENIED"));
+  mvc.perform(get("/api/v1/auth/me").session(fresh)).andExpect(status().isOk()).andExpect(jsonPath("$.data.permissions").value(org.hamcrest.Matchers.not(org.hamcrest.Matchers.hasItem("USER_ADMIN"))));
+  mvc.perform(get("/api/v1/auth/me").session(global)).andExpect(status().isOk()).andExpect(jsonPath("$.data.permissions").value(org.hamcrest.Matchers.hasItem("USER_ADMIN")));
+  mvc.perform(get("/api/v1/organization/appointments").session(fresh)).andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("ROLE_PERMISSION_DENIED"));
+  mvc.perform(get("/api/v1/tasks").session(global)).andExpect(status().isOk());mvc.perform(get("/api/v1/admin/role-permissions").session(global)).andExpect(status().isOk());
+ }
+ @Test @org.springframework.transaction.annotation.Transactional void disablingTaskWritesBlocksBothCreateAndWorkflowEndpoints()throws Exception{
+  jdbc.update("UPDATE user_scope SET company_id=NULL WHERE user_id=1");var global=session("demo.admin");global.setAttribute("totpAt",System.currentTimeMillis());
+  var task=tasks.create(new Policy.Actor(2,"COMPANY_LEADER",1,null,2),Records.map("title","权限测试","content","测试","companyId",1,"hostDeptId",3,"deadline",java.time.Instant.now().plusSeconds(3600).toString()));
+  mvc.perform(put("/api/v1/admin/role-permissions/COMPANY_LEADER").session(global).with(csrf()).header("Idempotency-Key",java.util.UUID.randomUUID().toString()).contentType("application/json").content("{\"version\":-1,\"disabled\":[\"TASK_CREATE\",\"TASK_UPDATE\"]}")).andExpect(status().isOk());
+  var leader=session("demo.leader");mvc.perform(get("/api/v1/tasks").session(leader)).andExpect(status().isOk());
+  mvc.perform(post("/api/v1/tasks").session(leader).with(csrf()).header("Idempotency-Key",java.util.UUID.randomUUID().toString()).contentType("application/json").content("{}")).andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("ROLE_PERMISSION_DENIED"));
+  mvc.perform(post("/api/v1/tasks/"+task.get("id")+"/confirm-assign").session(leader).with(csrf()).header("Idempotency-Key",java.util.UUID.randomUUID().toString()).contentType("application/json").content("{}")).andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("ROLE_PERMISSION_DENIED"));
+ }
+ @Test void permissionMappingClosesUnclassifiedApiRoutes(){
+  assertThat(RolePermissions.required(new org.springframework.mock.web.MockHttpServletRequest("GET","/api/v1/tasks/7"))).isEqualTo("TASK_VIEW");
+  assertThat(RolePermissions.required(new org.springframework.mock.web.MockHttpServletRequest("POST","/api/v1/tasks/7/work-items"))).isEqualTo("TASK_UPDATE");
+  assertThat(RolePermissions.required(new org.springframework.mock.web.MockHttpServletRequest("GET","/api/v1/admin/users"))).isEqualTo("USER_ADMIN");
+  assertThat(RolePermissions.required(new org.springframework.mock.web.MockHttpServletRequest("POST","/api/v1/organization/departments"))).isEqualTo("UNMAPPED");
+  assertThat(RolePermissions.required(new org.springframework.mock.web.MockHttpServletRequest("GET","/api/v1/unknown-future-api"))).isEqualTo("UNMAPPED");
+  var withContext=new org.springframework.mock.web.MockHttpServletRequest("GET","/workbench/api/v1/tasks");withContext.setContextPath("/workbench");assertThat(RolePermissions.required(withContext)).isEqualTo("TASK_VIEW");
+ }
+ @Test @org.springframework.transaction.annotation.Transactional void userAdministrationKeepsScopedCompanyDirectoryWhenOrgManagementIsDisabled()throws Exception{
+  jdbc.update("UPDATE user_scope SET company_id=NULL WHERE user_id=1");var global=session("demo.admin");global.setAttribute("totpAt",System.currentTimeMillis());
+  var user=Records.map("account","company-options-admin","name","公司管理员","passwordHash",passwords.encode("TestOnly-Synthetic12345"),"mustChangePassword",false);db.insertUser(user);db.insertScope(Records.map("userId",user.get("id"),"role","ADMIN","companyId",1,"deptId",null));
+  mvc.perform(put("/api/v1/admin/role-permissions/ADMIN").session(global).with(csrf()).header("Idempotency-Key",java.util.UUID.randomUUID().toString()).contentType("application/json").content("{\"version\":-1,\"disabled\":[\"ORG_ADMIN\"]}")).andExpect(status().isOk());
+  var companyAdmin=session("company-options-admin");mvc.perform(get("/api/v1/admin/companies").session(companyAdmin)).andExpect(status().isOk());mvc.perform(get("/api/v1/admin/users").session(companyAdmin)).andExpect(status().isOk());mvc.perform(get("/api/v1/admin/departments").session(companyAdmin)).andExpect(status().isForbidden());
+ }
+ @Test void passwordChangeRequirementAppliesUnderServletContextPath()throws Exception{
+  var login=mvc.perform(post("/api/v1/auth/login").with(csrf()).contentType("application/json").content("{\"account\":\"demo.employee\",\"password\":\"TestOnly-Synthetic12345\"}")).andExpect(status().isOk()).andReturn();
+  var current=(MockHttpSession)login.getRequest().getSession(false);
+  mvc.perform(get("/workbench/api/v1/tasks").contextPath("/workbench").session(current)).andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("PASSWORD_CHANGE_REQUIRED"));
+ }
+ @Test @org.springframework.transaction.annotation.Transactional void disabledTaskViewBlocksTaskClassificationEvenWhenKpiEnabled()throws Exception{
+  jdbc.update("UPDATE user_scope SET company_id=NULL WHERE user_id=1");var global=session("demo.admin");global.setAttribute("totpAt",System.currentTimeMillis());
+  var task=tasks.create(new Policy.Actor(2,"COMPANY_LEADER",1,null,2),Records.map("title","权限分类测试","content","测试","companyId",1,"hostDeptId",3,"deadline",java.time.Instant.now().plusSeconds(3600).toString()));
+  mvc.perform(put("/api/v1/admin/role-permissions/COMPANY_LEADER").session(global).with(csrf()).header("Idempotency-Key",java.util.UUID.randomUUID().toString()).contentType("application/json").content("{\"version\":-1,\"disabled\":[\"TASK_VIEW\"]}")).andExpect(status().isOk());
+  var leader=session("demo.leader");String url="/api/v1/tasks/"+task.get("id")+"/classification";
+  mvc.perform(get(url).session(leader)).andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("ROLE_PERMISSION_DENIED"));
+  mvc.perform(post(url).session(leader).with(csrf()).header("Idempotency-Key",java.util.UUID.randomUUID().toString()).contentType("application/json").content("{}")).andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("ROLE_PERMISSION_DENIED"));
+ }
  @Test void csrfRejectsForgedLoginBeforeMutation()throws Exception{mvc.perform(post("/api/v1/auth/login").contentType("application/json").content("{\"account\":\"demo.employee\",\"password\":\"TestOnly-Synthetic12345\"}")).andExpect(status().isForbidden());}
  @Test void unauthenticatedCannotReadTasks()throws Exception{mvc.perform(get("/api/v1/tasks")).andExpect(status().isUnauthorized());}
  @Test void bootstrapHasSeparateScopesAndRealForeignKeys(){assertThat(db.users()).hasSize(7);assertThat(db.list("DEPARTMENT",null,null)).hasSize(3);}
  @Test void employeeCannotGuessForeignTaskOrBypassPasswordChange()throws Exception{var login=mvc.perform(post("/api/v1/auth/login").with(csrf()).contentType("application/json").content("{\"account\":\"demo.employee\",\"password\":\"TestOnly-Synthetic12345\"}")).andExpect(status().isOk()).andReturn();var session=(MockHttpSession)login.getRequest().getSession(false);mvc.perform(get("/api/v1/tasks/99999").session(session)).andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("PASSWORD_CHANGE_REQUIRED"));}
 
  @Autowired TaskService tasks;@Autowired Records records;@Autowired org.springframework.security.crypto.password.PasswordEncoder passwords;
+ @Test @org.springframework.transaction.annotation.Transactional void taskListReturnsLatestVisibleProgressForCards()throws Exception{
+  var actor=new Policy.Actor(2,"COMPANY_LEADER",1,null,2);
+  var task=tasks.create(actor,Records.map("title","Card progress fixture","content","Synthetic","companyId",1,"hostDeptId",3,"collaboratorDeptIds",java.util.List.of(4),"deadline",java.time.Instant.now().plusSeconds(3600).toString()));
+  long id=Jsons.number(task.get("id"));tasks.taskAction(actor,id,"confirm-assign",java.util.Map.of());
+  for(var sub:records.children(id,"SUB_TASK")){int dept=Jsons.integer(sub.get("deptId"));var head=new Policy.Actor(dept==3?3:5,"DEPT_HEAD",1,dept,dept==3?3:5);tasks.subAction(head,Jsons.number(sub.get("id")),"receive",java.util.Map.of());tasks.subAction(head,Jsons.number(sub.get("id")),"progress",Records.map("percent",dept==3?20:60,"note",dept==3?"OFFICE_PRIVATE":"FINANCE_LATEST"));}
+  mvc.perform(get("/api/v1/tasks").session(session("demo.finance")).param("keyword","Card progress fixture")).andExpect(status().isOk()).andExpect(jsonPath("$.data.items[0].latestProgress").value("FINANCE_LATEST")).andExpect(jsonPath("$.data.items[0].reportedPercent").value(60));
+  mvc.perform(get("/api/v1/sub-tasks/mine").session(session("demo.finance")).param("keyword","Card progress fixture")).andExpect(status().isOk()).andExpect(jsonPath("$.data.items[0].latestProgress").value("FINANCE_LATEST"));
+ }
  @Autowired org.springframework.jdbc.core.JdbcTemplate jdbc;
  @Test @org.springframework.transaction.annotation.Transactional void departmentStatsExcludeDraftAssignmentsAndPreserveOverdueFacts()throws Exception{
   var head=session("demo.head");var actor=new Policy.Actor(2,"COMPANY_LEADER",1,null,2);

@@ -7,9 +7,13 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright')
 const browser=await chromium.launch({headless:true,executablePath:process.env.PLAYWRIGHT_CHROMIUM||undefined})
 const context=await browser.newContext({viewport:{width:1440,height:1000},locale:'zh-CN',colorScheme:'light'})
 const page=await context.newPage(),issues=[],writes=[],checks=[]
-let loggedIn=false,role='COMPANY_LEADER',expireTasks=false,adminReauthRequired=false,adminReauthVerified=false,adminCompanySaves=0,adminGlobal=false
-const me=()=>({id:'fixture-user',name:'测试人员',accountSuffix:'0026',role,companyId:role==='GROUP_LEADER'||adminGlobal?null:'fixture-company',deptId:role==='GROUP_LEADER'?null:'fixture-dept',mustChangePassword:false,totpRequired:false,totpVerified:true,scopes:[{id:'leader',role:'COMPANY_LEADER',companyId:'fixture-company'},{id:'admin',role:'ADMIN',companyId:'fixture-company'}]})
+let loggedIn=false,role='COMPANY_LEADER',expireTasks=false,adminReauthRequired=false,adminReauthVerified=false,adminCompanySaves=0,adminGlobal=false,failHistory=false
+const me=()=>({id:'fixture-user',name:'测试人员',accountSuffix:'0026',role,companyId:role==='GROUP_LEADER'||adminGlobal?null:'fixture-company',deptId:role==='GROUP_LEADER'?null:'fixture-dept',mustChangePassword:false,totpRequired:false,totpVerified:true,scopes:[{id:'leader',role:'COMPANY_LEADER',companyId:'fixture-company',companyName:'测试公司'},{id:'admin',role:'ADMIN',companyId:'fixture-company',companyName:'测试公司'}]})
 const task={id:'fixture-task',code:'RW-2026-001',title:'完成年度重点项目验收准备',content:'明确验收材料、核对交付成果，并按计划完成跨部门资料汇总。',companyId:'fixture-company',companyName:'测试公司',hostDeptId:'fixture-dept',hostDeptName:'综合管理部',priority:'HIGH',status:'IN_PROGRESS',deadline:'2026-12-31T18:00:00+08:00',version:3,allowedActions:['summarize','deadline','urge','comment','upload'],subTasks:[{id:'fixture-sub',deptId:'fixture-dept',deptName:'综合管理部',role:'HOST',ownerName:'测试人员',percent:45,status:'IN_PROGRESS',version:2,allowedActions:['progress','submit','extend','transfer']}],comments:[],progress:[],timeline:[{id:'event1',actionName:'确认分配',operatorName:'测试人员',createdAt:'2026-10-24T10:00:00+08:00',description:'已确认责任部门'}],attachments:[],deadlineRequests:[],collaborationRequests:[]}
+task.latestProgress='卡片展示的最新执行记录';task.progressSource='部门进度';task.reportedPercent=45;task.progressAt='2026-11-08T03:00:00Z';task.progressDeptName='综合管理部'
+task.createdAt='2026-01-01T10:00:00+08:00'
+task.progress=[{id:'report-first',subTaskId:'fixture-sub',deptId:'fixture-dept',note:'已开始核对资料',percent:10,createdAt:'2026-10-26T03:00:00Z'},{id:'report-latest',subTaskId:'fixture-sub',deptId:'fixture-dept',note:task.latestProgress,percent:45,createdAt:task.progressAt}]
+task.workItems=[{id:'fixture-item',title:'核对一期交付清单',deptName:'综合管理部',ownerName:'测试人员',deadline:task.deadline,status:'IN_PROGRESS',percent:65,version:1,allowedActions:['update']}]
 const companies=[{id:'fixture-company',name:'测试公司',companyCode:'TEST',enabled:true}]
 const departments=[{id:'fixture-dept',name:'综合管理部',companyId:'fixture-company',companyName:'测试公司'},{id:'fixture-other-dept',name:'第二部门',companyId:'fixture-other-company',companyName:'第二公司'}]
 page.on('pageerror',e=>issues.push(e.message))
@@ -17,6 +21,8 @@ await page.route('**/api/v1/**',async route=>{const req=route.request(),url=new 
  if(path==='/admin/companies'&&method==='POST'&&adminReauthRequired){if(!adminReauthVerified){await route.fulfill({status:403,json:{code:'FRESH_TOTP_REQUIRED',message:'请在五分钟内完成二次验证',traceId:'fixture'}});return}adminCompanySaves++;companies.push({id:'fixture-new-company',name:'新建关联公司',companyCode:'FIXTURE',enabled:true})}
  if(path==='/auth/totp/verify'&&method==='POST'&&adminReauthRequired){if(req.postDataJSON().code!=='123456'){await route.fulfill({status:422,json:{code:'INVALID_TOTP',message:'验证码无效',traceId:'fixture'}});return}adminReauthVerified=true}
  if(expireTasks&&path==='/tasks'){loggedIn=false;await route.fulfill({status:401,json:{code:'UNAUTHENTICATED',message:'请登录',traceId:'fixture-expired'}});return}
+ if(failHistory&&path==='/tasks/fixture-task'){await route.fulfill({status:503,json:{code:'UNAVAILABLE',message:'汇报读取暂不可用',traceId:'fixture-history'}});return}
+ if(path==='/work-items/fixture-item'&&method==='POST'){const body=req.postDataJSON();Object.assign(task.workItems[0],{percent:body.percent,status:body.percent===100?'COMPLETED':'IN_PROGRESS',version:2})}
  if(path==='/auth/csrf')data={token:'fixture-csrf',headerName:'X-CSRF-TOKEN'}
  else if(path==='/auth/me'){if(!loggedIn){await route.fulfill({status:401,json:{code:'UNAUTHENTICATED',message:'请登录',traceId:'fixture-auth'}});return}data=me()}
  else if(path==='/stats/overview')data={total:12,inProgress:7,pendingAcceptance:3,overdue:2,completed:2,recentTasks:[task]}
@@ -41,6 +47,7 @@ await page.route('**/api/v1/**',async route=>{const req=route.request(),url=new 
  await route.fulfill({json:{code:'OK',message:'',data,traceId:'fixture-trace'}})
 })
 try{
+ await page.clock.install()
  await page.goto('http://127.0.0.1:5173')
  await page.getByRole('heading',{name:'登录工作台',exact:true}).waitFor()
  assert.equal(await page.locator('footer.source-notice').count(),0,'source link is not in a footer')
@@ -73,7 +80,74 @@ try{
  await command.getByRole('button',{name:'任务中心',exact:true}).click()
  await page.waitForURL('**/#/tasks')
  await command.waitFor({state:'hidden'})
+ await page.locator('.task-card').first().waitFor()
+ assert.equal(await page.locator('.desktop-table').count(),0,'task center uses cards instead of the table')
+ assert.ok((await page.locator('.task-card').first().innerText()).includes('卡片展示的最新执行记录'),'latest progress is visible without opening detail')
+ assert.ok(!/\d+%/.test(await page.locator('.task-card').first().innerText()),'task cards show status without numeric progress')
+ assert.equal(await page.locator('.task-card .el-progress').count(),0)
+ await page.locator('.task-card').first().click({position:{x:8,y:8}})
+ await page.waitForURL('**/#/tasks/fixture-task')
+ await page.goto('http://127.0.0.1:5173/#/tasks')
+ await page.locator('.task-card').first().focus()
+ await page.keyboard.press('Enter')
+ await page.waitForURL('**/#/tasks/fixture-task')
+ await page.goto('http://127.0.0.1:5173/#/tasks')
+ await page.getByRole('button',{name:'甘特图',exact:true}).click()
+ await page.locator('.time-bar').click()
+ await page.waitForURL('**/#/tasks/fixture-task')
+ await page.goto('http://127.0.0.1:5173/#/tasks')
  for(const theme of ['light','dark']){
+  if(theme==='light'){
+   const beforeWrites=writes.length
+   await page.getByRole('button',{name:'甘特图',exact:true}).click()
+   await page.locator('.report-clip:not(.unreported)').last().waitFor()
+   const pointerWindow=page.getByRole('slider',{name:'时间指针'})
+   const visibleDays=async()=>Number(await pointerWindow.getAttribute('aria-valuemax'))-Number(await pointerWindow.getAttribute('aria-valuemin'))
+   assert.ok((await visibleDays())<=31,'year-long task defaults to a month instead of a compressed year')
+   await page.getByRole('button',{name:'全周期',exact:true}).click()
+   assert.ok((await visibleDays())>350,'full-cycle overview retains the year')
+   await page.getByRole('button',{name:'周',exact:true}).click();assert.equal(await visibleDays(),7)
+   await page.getByRole('button',{name:'日',exact:true}).click();assert.equal(await visibleDays(),1)
+   await page.getByRole('button',{name:'月',exact:true}).click()
+   await page.getByRole('button',{name:'下一时段'}).click();assert.ok((await page.locator('.window-label').innerText()).includes('2026-12'))
+   await page.getByRole('button',{name:'上一时段'}).click();assert.ok((await page.locator('.window-label').innerText()).includes('2026-11'))
+   await page.locator('input[aria-label="选择浏览日期"]').fill('2027-06-15')
+   await page.locator('.outside-window').click()
+   assert.ok((await page.locator('.window-label').innerText()).includes('2026-11'),'locate task returns to latest report month')
+   const overview=page.getByRole('slider',{name:'全周期视窗'}),overviewBox=await overview.boundingBox(),selection=await page.locator('.overview-window').boundingBox()
+   const beforeWindow=Number(await overview.getAttribute('aria-valuenow')),windowDays=await visibleDays()
+   await page.mouse.move(selection.x+selection.width/2,overviewBox.y+28);await page.mouse.down();await page.mouse.move(selection.x+selection.width/2-100,overviewBox.y+28,{steps:8});await page.mouse.up()
+   assert.ok(Number(await overview.getAttribute('aria-valuenow'))<beforeWindow,'drag overview to browse earlier dates')
+   assert.ok(Math.abs((await visibleDays())-windowDays)<.0001,'overview drag retains the window span')
+   await page.getByRole('button',{name:'今天',exact:true}).click()
+   await page.getByRole('button',{name:'放大时间轴'}).click()
+   await page.locator('.gantt-scroll').evaluate(el=>{el.scrollLeft=0})
+   await page.locator('.gantt-scroll').scrollIntoViewIfNeeded()
+   const pointer=page.getByRole('slider',{name:'时间指针'}),box=await pointer.boundingBox()
+   await page.mouse.move(box.x+40,box.y+45);await page.mouse.down();await page.mouse.move(box.x+160,box.y+45,{steps:8});await page.mouse.up()
+   const moved=Number(await pointer.getAttribute('aria-valuenow'))
+   assert.ok(moved>Number(await pointer.getAttribute('aria-valuemin')),'mouse scrubs timeline')
+   const track=await page.locator('.row-track').boundingBox()
+   await page.mouse.move(track.x+250,track.y+115);await page.mouse.down();await page.mouse.move(track.x+80,track.y+115,{steps:8});await page.mouse.up()
+   assert.ok(await page.locator('.gantt-scroll').evaluate(el=>el.scrollLeft>0),'mouse drags empty track to pan')
+   assert.equal(writes.length,beforeWrites,'timeline browsing never changes task data')
+   const beforeRefresh=await pointer.getAttribute('aria-valuenow')
+   const refresh=page.waitForResponse(response=>new URL(response.url()).pathname==='/api/v1/tasks')
+   await page.clock.fastForward(31000);await refresh
+   await page.waitForFunction(()=>document.querySelector('.task-panel')?.getAttribute('aria-busy')==='false')
+   assert.equal(await pointer.getAttribute('aria-valuenow'),beforeRefresh,'automatic refresh preserves the scrubber')
+   assert.ok((await page.locator('.timeline-controls').innerText()).includes('2×'),'automatic refresh preserves zoom')
+   await page.getByRole('button',{name:'缩小时间轴'}).click()
+   await page.getByRole('button',{name:'卡片',exact:true}).click()
+   failHistory=true
+   await page.getByRole('button',{name:'甘特图',exact:true}).click()
+   await page.locator('.history-error').waitFor()
+   assert.equal(await page.locator('.report-clip').count(),0,'failed history is never presented as an empty report')
+   failHistory=false
+   await page.getByRole('button',{name:'重新加载',exact:true}).click()
+   await page.locator('.report-clip:not(.unreported)').last().waitFor()
+   await page.getByRole('button',{name:'卡片',exact:true}).click()
+  }
   if(theme==='dark')await page.getByRole('button',{name:'切换为深色模式'}).click()
  for(const width of [375,390,768,1024,1440]){
   await page.setViewportSize({width,height:960})
@@ -84,13 +158,45 @@ try{
    const size=await page.evaluate(()=>({scroll:document.documentElement.scrollWidth,width:window.innerWidth}))
    assert.ok(size.scroll<=size.width,`overflow ${width} ${path}: ${JSON.stringify(size)}`)
    checks.push({theme,width,path,overflow:false});if(process.env.QA_SCREENSHOTS&&path==='/'&&[375,1440].includes(width)){await mkdir('tests/results',{recursive:true});await page.screenshot({path:`tests/results/dashboard-${theme}-${width}.png`,fullPage:true})}
+   if(path==='/tasks'){
+    await page.getByRole('button',{name:'甘特图',exact:true}).click()
+    await page.locator('.time-bar').waitFor()
+    assert.ok((await page.locator('.gantt-row').innerText()).includes(task.latestProgress))
+    assert.ok(!/\d+%/.test(await page.locator('.gantt-row').innerText()),'timeline shows status without numeric progress')
+    assert.equal(await page.locator('.time-bar').getAttribute('href'),'#/tasks/fixture-task')
+    const clip=page.locator('.report-clip:not(.unreported)').last()
+    await clip.focus();await page.keyboard.press('Enter')
+    assert.ok((await page.locator('.report-inspector').innerText()).includes(task.latestProgress),'clip reveals actual report content')
+    assert.ok(!/\d+%/.test(await page.locator('.report-inspector').innerText()),'report inspector omits legacy percentages')
+    const pointer=page.getByRole('slider',{name:'时间指针'})
+    await pointer.focus();await page.keyboard.press('Home')
+    assert.ok((await page.locator('.report-inspector').innerText()).includes('已开始核对资料'),'month starts with the actual prior report, not invented progress')
+    const start=Number(await pointer.getAttribute('aria-valuenow'))
+    await page.keyboard.press('ArrowRight')
+    assert.ok(Number(await pointer.getAttribute('aria-valuenow'))>start,'keyboard scrubs time')
+    const ganttSize=await page.evaluate(()=>({scroll:document.documentElement.scrollWidth,width:window.innerWidth}))
+    assert.ok(ganttSize.scroll<=ganttSize.width,`gantt overflow ${theme} ${width}`)
+    await page.locator('.gantt-scroll').evaluate(el=>{el.scrollLeft=el.scrollWidth})
+    assert.ok(await page.locator('.gantt-scroll').evaluate(el=>el.scrollWidth<=el.clientWidth||el.scrollLeft>0),'timeline scrolls inside its container')
+    if(process.env.QA_SCREENSHOTS&&[375,1440].includes(width)){await mkdir('tests/results',{recursive:true});await page.screenshot({path:`tests/results/gantt-${theme}-${width}.png`,fullPage:true})}
+    await page.getByRole('button',{name:'卡片',exact:true}).click()
+    await page.locator('.task-card').waitFor()
+    checks.push({theme,width,path:'/tasks:gantt',overflow:false})
+   }
   }
  }
  }
  await page.setViewportSize({width:1440,height:1000})
  await page.goto('http://127.0.0.1:5173/#/tasks/fixture-task')
+ await page.locator('.detail-hero').waitFor()
+ assert.ok(!/\d+%/.test(await page.locator('.main-content').innerText()),'task detail and work items show states only')
+ assert.equal(await page.locator('.main-content .el-progress').count(),0)
  await page.getByRole('button',{name:'更新进度',exact:true}).click()
  await page.getByRole('dialog').waitFor()
+ assert.equal(await page.getByRole('dialog').locator('.el-slider').count(),0,'report form has no percentage control')
+ await page.getByRole('button',{name:'确认更新进度',exact:true}).click()
+ await page.getByText('请填写进展说明',{exact:true}).waitFor()
+ await page.getByRole('dialog').locator('textarea').fill('已完成本轮资料核对，等待下一步确认。')
  await page.getByRole('button',{name:'确认更新进度',exact:true}).click()
  await page.getByRole('dialog').waitFor({state:'hidden'})
  await page.getByPlaceholder('补充说明或同步进展').fill('验证沟通记录')
@@ -100,8 +206,17 @@ try{
  assert.equal(progressWrite.headers['x-csrf-token'],'fixture-csrf')
  assert.ok(progressWrite.headers['idempotency-key'])
  assert.equal(progressWrite.body.version,2)
+ assert.equal(progressWrite.body.percent,45,'text reporting preserves the existing numeric API value')
+ assert.equal(progressWrite.body.note,'已完成本轮资料核对，等待下一步确认。')
+ await page.locator('.work-item .el-select').click()
+ await page.getByRole('option',{name:'已完成',exact:true}).click()
+ await page.locator('.work-item').getByRole('button',{name:'保存',exact:true}).click()
+ const statusWrite=writes.find(w=>w.path==='/work-items/fixture-item')
+ assert.equal(statusWrite.body.percent,100,'completed state uses the existing wire format')
+ assert.equal(statusWrite.body.version,1)
+ await page.locator('.work-item .row-between').getByText('已完成',{exact:true}).waitFor()
  await page.getByRole('button',{name:/公司领导/}).hover()
- await page.getByText('系统管理员 · fixture-company',{exact:true}).click()
+ await page.getByText('系统管理员 · 测试公司',{exact:true}).click()
  await page.getByRole('heading',{name:'管理工作台'}).waitFor()
  await page.getByRole('button',{name:'切换为浅色模式'}).click()
  for(const theme of ['light','dark']){
@@ -205,6 +320,7 @@ try{
  role='GROUP_LEADER'
  await page.reload()
  await page.locator('.app-layout').waitFor()
+ await page.getByRole('heading',{name:'领导工作概览',exact:true}).waitFor()
  await page.goto('http://127.0.0.1:5173/#/tasks/new')
  const companyPicker=page.locator('.el-form-item').filter({hasText:'任务所属公司'}).locator('.el-select')
  const hostPicker=page.locator('.el-form-item').filter({hasText:'主办部门'}).locator('.el-select')
