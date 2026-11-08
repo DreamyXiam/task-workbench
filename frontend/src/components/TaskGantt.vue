@@ -4,7 +4,6 @@ import type {Row} from '../domain'
 import {date,overdue,statuses} from '../domain'
 import {api,errorText} from '../api'
 import {useAuth} from '../stores/auth'
-import {visibleProgress} from '../detail-progress'
 import {dayLabel,ganttLayout} from '../task-gantt'
 import {dayNumber} from '../task-gantt'
 import {clipRange,moveWindow,periodWindow,shiftPeriod} from '../timeline-window'
@@ -128,7 +127,7 @@ async function changeZoom(direction:number){zoom.value=Math.max(1,Math.min(32,zo
    <div class="gantt-content" :style="{'--zoom':zoom}">
     <div class="gantt-axis"><div class="task-label">任务 / 最新进展<small>{{ loading?'正在加载汇报记录…':'任务期限 · 汇报记录' }}</small></div><div ref="axis" class="axis-track" role="slider" tabindex="0" aria-label="时间指针" :aria-valuemin="visible.start" :aria-valuemax="visible.end" :aria-valuenow="cursor" :aria-valuetext="cursorLabel" @pointerdown="scrub" @keydown="scrubKey"><span v-for="tick in ticks" :key="tick" class="axis-tick" :style="{left:position(tick)}">{{ tickLabel(tick) }}</span><span class="playhead-knob" :style="{left:position(cursor)}" aria-hidden="true"/></div></div>
     <div v-for="(row,index) in rows" :key="key(row.task)" class="gantt-row" :class="{'selected-row':current&&key(current.task)===key(row.task)}">
-     <div class="task-label"><router-link :to="'/tasks/'+key(row.task)" class="task-title">{{ row.task.title||row.task.taskTitle }}</router-link><div class="task-state"><span>{{ statuses[row.task.status]||row.task.status }}</span><span>{{ row.task.hostDeptName||row.task.deptName||'未指定部门' }}</span><b v-if="visibleProgress(row.task.reportedPercent)!==null">{{ row.task.reportedPercent }}%</b></div><p :title="row.task.latestProgress">{{ row.task.latestProgress||'暂无进展记录' }}</p><small>{{ row.loaded?row.events.length+' 条汇报':failures[key(row.task)]?'记录加载失败':'正在加载汇报…' }}<template v-if="row.invalid"> · {{ row.invalid }} 条时间异常</template></small></div>
+     <div class="task-label"><router-link :to="'/tasks/'+key(row.task)" class="task-title">{{ row.task.title||row.task.taskTitle }}</router-link><div class="task-state"><span>{{ statuses[row.task.status]||row.task.status }}</span><span>{{ row.task.hostDeptName||row.task.deptName||'未指定部门' }}</span></div><p :title="row.task.latestProgress">{{ row.task.latestProgress||'暂无进展记录' }}</p><small>{{ row.loaded?row.events.length+' 条汇报':failures[key(row.task)]?'记录加载失败':'正在加载汇报…' }}<template v-if="row.invalid"> · {{ row.invalid }} 条时间异常</template></small></div>
      <div class="row-track" @pointerdown="pan">
       <span v-for="tick in ticks" :key="tick" class="grid-line" :style="{left:position(tick)}"/><span v-if="chart.today>=visible.start&&chart.today<visible.end" class="today-line" :style="{left:position(chart.today)}" aria-hidden="true"/>
       <p v-if="chart.rows[index].issue" class="date-issue">{{ chart.rows[index].issue }}</p>
@@ -145,7 +144,7 @@ async function changeZoom(direction:number){zoom.value=Math.max(1,Math.min(32,zo
   <section v-if="current" class="report-inspector" aria-label="指针处汇报内容">
    <div class="inspector-heading"><div><span class="inspector-caption">指针处的汇报</span><h3>{{ current.task.title||current.task.taskTitle }}</h3></div><router-link :to="'/tasks/'+key(current.task)">查看任务详情 ↗</router-link></div>
    <p v-if="failures[key(current.task)]" role="alert">{{ failures[key(current.task)] }}</p><p v-else-if="!current.loaded" class="muted">正在加载汇报记录…</p>
-   <template v-else><p class="interval-label">浏览时间 {{ cursorLabel }}<template v-if="currentSegment"> · 片段 {{ date(pointISO(currentSegment.start)) }} — {{ date(pointISO(currentSegment.end)) }}</template></p><template v-if="currentSegment?.events.length"><article v-for="event in currentSegment.events" :key="event.id" class="report-entry"><div><b>{{ event.source }}</b><span>{{ event.department }}<template v-if="event.author"> · {{ event.author }}</template></span><strong v-if="event.percent!==null">{{ event.percent }}%</strong><time>{{ date(event.createdAt) }}</time></div><p>{{ event.content }}</p></article></template><p v-else class="muted">{{ currentSegment?'此时间段尚无汇报。':'指针位于该任务的时间范围之外。' }}</p></template>
+   <template v-else><p class="interval-label">浏览时间 {{ cursorLabel }}<template v-if="currentSegment"> · 片段 {{ date(pointISO(currentSegment.start)) }} — {{ date(pointISO(currentSegment.end)) }}</template></p><template v-if="currentSegment?.events.length"><article v-for="event in currentSegment.events" :key="event.id" class="report-entry"><div><b>{{ event.source }}</b><span>{{ event.department }}<template v-if="event.author"> · {{ event.author }}</template></span><time>{{ date(event.createdAt) }}</time></div><p>{{ event.content }}</p></article></template><p v-else class="muted">{{ currentSegment?'此时间段尚无汇报。':'指针位于该任务的时间范围之外。' }}</p></template>
   </section>
   <footer>上轨为创建至截止日期，下轨按实际汇报时间分段；最后一次汇报延续展示至期限末或最后汇报当日，不代表期间持续更新。蓝线为今天，橙线为浏览时间。拖动仅用于浏览。刻度获焦后用 ← / → 按小时微调，Shift 按天调整。</footer>
  </section>

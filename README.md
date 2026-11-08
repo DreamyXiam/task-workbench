@@ -2,6 +2,14 @@
 
 [简体中文](README.zh-CN.md) | English
 
+## Current task experience
+
+- Task cards open details from anywhere on the card and show workflow status, responsibility, deadline and the latest report. Task completion percentages and percentage progress bars are not displayed.
+- Reports contain a written update and its timestamp. Department and main-task states advance through receive, submit, summarize and acceptance actions. Independent work items use an **In progress / Completed** selector.
+- The Gantt view combines a full-cycle overview with **month / week / day** windows, defaulting to the current month. Drag the overview selection to browse multi-year tasks, move the time pointer to inspect report clips, or jump to a date. Browsing does not change deadlines or historical reports.
+
+See the [task UI and reporting guide](docs/operations/task-ui-guide.md) for workflow, timeline controls and compatibility details. This source preview still requires the acceptance and release checks described below.
+
 ## Open-source preview
 
 Task Workbench supports department-based task assignment, cross-company collaboration, delivery review and auditable KPI snapshots. It is intended for teams evaluating a self-hosted organizational workbench. This is a development preview; production acceptance remains pending.

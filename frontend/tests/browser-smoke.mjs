@@ -13,6 +13,7 @@ const task={id:'fixture-task',code:'RW-2026-001',title:'完成年度重点项目
 task.latestProgress='卡片展示的最新执行记录';task.progressSource='部门进度';task.reportedPercent=45;task.progressAt='2026-11-08T03:00:00Z';task.progressDeptName='综合管理部'
 task.createdAt='2026-01-01T10:00:00+08:00'
 task.progress=[{id:'report-first',subTaskId:'fixture-sub',deptId:'fixture-dept',note:'已开始核对资料',percent:10,createdAt:'2026-10-26T03:00:00Z'},{id:'report-latest',subTaskId:'fixture-sub',deptId:'fixture-dept',note:task.latestProgress,percent:45,createdAt:task.progressAt}]
+task.workItems=[{id:'fixture-item',title:'核对一期交付清单',deptName:'综合管理部',ownerName:'测试人员',deadline:task.deadline,status:'IN_PROGRESS',percent:65,version:1,allowedActions:['update']}]
 const companies=[{id:'fixture-company',name:'测试公司',companyCode:'TEST',enabled:true}]
 const departments=[{id:'fixture-dept',name:'综合管理部',companyId:'fixture-company',companyName:'测试公司'},{id:'fixture-other-dept',name:'第二部门',companyId:'fixture-other-company',companyName:'第二公司'}]
 page.on('pageerror',e=>issues.push(e.message))
@@ -21,6 +22,7 @@ await page.route('**/api/v1/**',async route=>{const req=route.request(),url=new 
  if(path==='/auth/totp/verify'&&method==='POST'&&adminReauthRequired){if(req.postDataJSON().code!=='123456'){await route.fulfill({status:422,json:{code:'INVALID_TOTP',message:'验证码无效',traceId:'fixture'}});return}adminReauthVerified=true}
  if(expireTasks&&path==='/tasks'){loggedIn=false;await route.fulfill({status:401,json:{code:'UNAUTHENTICATED',message:'请登录',traceId:'fixture-expired'}});return}
  if(failHistory&&path==='/tasks/fixture-task'){await route.fulfill({status:503,json:{code:'UNAVAILABLE',message:'汇报读取暂不可用',traceId:'fixture-history'}});return}
+ if(path==='/work-items/fixture-item'&&method==='POST'){const body=req.postDataJSON();Object.assign(task.workItems[0],{percent:body.percent,status:body.percent===100?'COMPLETED':'IN_PROGRESS',version:2})}
  if(path==='/auth/csrf')data={token:'fixture-csrf',headerName:'X-CSRF-TOKEN'}
  else if(path==='/auth/me'){if(!loggedIn){await route.fulfill({status:401,json:{code:'UNAUTHENTICATED',message:'请登录',traceId:'fixture-auth'}});return}data=me()}
  else if(path==='/stats/overview')data={total:12,inProgress:7,pendingAcceptance:3,overdue:2,completed:2,recentTasks:[task]}
@@ -81,6 +83,8 @@ try{
  await page.locator('.task-card').first().waitFor()
  assert.equal(await page.locator('.desktop-table').count(),0,'task center uses cards instead of the table')
  assert.ok((await page.locator('.task-card').first().innerText()).includes('卡片展示的最新执行记录'),'latest progress is visible without opening detail')
+ assert.ok(!/\d+%/.test(await page.locator('.task-card').first().innerText()),'task cards show status without numeric progress')
+ assert.equal(await page.locator('.task-card .el-progress').count(),0)
  await page.locator('.task-card').first().click({position:{x:8,y:8}})
  await page.waitForURL('**/#/tasks/fixture-task')
  await page.goto('http://127.0.0.1:5173/#/tasks')
@@ -158,11 +162,12 @@ try{
     await page.getByRole('button',{name:'甘特图',exact:true}).click()
     await page.locator('.time-bar').waitFor()
     assert.ok((await page.locator('.gantt-row').innerText()).includes(task.latestProgress))
-    assert.ok((await page.locator('.gantt-row').innerText()).includes('45%'))
+    assert.ok(!/\d+%/.test(await page.locator('.gantt-row').innerText()),'timeline shows status without numeric progress')
     assert.equal(await page.locator('.time-bar').getAttribute('href'),'#/tasks/fixture-task')
     const clip=page.locator('.report-clip:not(.unreported)').last()
     await clip.focus();await page.keyboard.press('Enter')
     assert.ok((await page.locator('.report-inspector').innerText()).includes(task.latestProgress),'clip reveals actual report content')
+    assert.ok(!/\d+%/.test(await page.locator('.report-inspector').innerText()),'report inspector omits legacy percentages')
     const pointer=page.getByRole('slider',{name:'时间指针'})
     await pointer.focus();await page.keyboard.press('Home')
     assert.ok((await page.locator('.report-inspector').innerText()).includes('已开始核对资料'),'month starts with the actual prior report, not invented progress')
@@ -183,8 +188,15 @@ try{
  }
  await page.setViewportSize({width:1440,height:1000})
  await page.goto('http://127.0.0.1:5173/#/tasks/fixture-task')
+ await page.locator('.detail-hero').waitFor()
+ assert.ok(!/\d+%/.test(await page.locator('.main-content').innerText()),'task detail and work items show states only')
+ assert.equal(await page.locator('.main-content .el-progress').count(),0)
  await page.getByRole('button',{name:'更新进度',exact:true}).click()
  await page.getByRole('dialog').waitFor()
+ assert.equal(await page.getByRole('dialog').locator('.el-slider').count(),0,'report form has no percentage control')
+ await page.getByRole('button',{name:'确认更新进度',exact:true}).click()
+ await page.getByText('请填写进展说明',{exact:true}).waitFor()
+ await page.getByRole('dialog').locator('textarea').fill('已完成本轮资料核对，等待下一步确认。')
  await page.getByRole('button',{name:'确认更新进度',exact:true}).click()
  await page.getByRole('dialog').waitFor({state:'hidden'})
  await page.getByPlaceholder('补充说明或同步进展').fill('验证沟通记录')
@@ -194,6 +206,15 @@ try{
  assert.equal(progressWrite.headers['x-csrf-token'],'fixture-csrf')
  assert.ok(progressWrite.headers['idempotency-key'])
  assert.equal(progressWrite.body.version,2)
+ assert.equal(progressWrite.body.percent,45,'text reporting preserves the existing numeric API value')
+ assert.equal(progressWrite.body.note,'已完成本轮资料核对，等待下一步确认。')
+ await page.locator('.work-item .el-select').click()
+ await page.getByRole('option',{name:'已完成',exact:true}).click()
+ await page.locator('.work-item').getByRole('button',{name:'保存',exact:true}).click()
+ const statusWrite=writes.find(w=>w.path==='/work-items/fixture-item')
+ assert.equal(statusWrite.body.percent,100,'completed state uses the existing wire format')
+ assert.equal(statusWrite.body.version,1)
+ await page.locator('.work-item .row-between').getByText('已完成',{exact:true}).waitFor()
  await page.getByRole('button',{name:/公司领导/}).hover()
  await page.getByText('系统管理员 · 测试公司',{exact:true}).click()
  await page.getByRole('heading',{name:'管理工作台'}).waitFor()

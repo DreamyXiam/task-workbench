@@ -3,11 +3,9 @@ import { computed } from 'vue'
 import { CalendarDays,Building2,UserRound,ArrowUpRight } from 'lucide-vue-next'
 import { date,overdue } from '../domain'
 import type { Row } from '../domain'
-import { visibleProgress } from '../detail-progress'
 import { summaryValue } from '../key-work'
 import StatusBadge from './StatusBadge.vue'
 const props=defineProps<{task:Row;showKeyWork?:boolean}>()
-const percent=computed(()=>visibleProgress(props.task.reportedPercent))
 const priority=computed(()=>({HIGH:'高优先级',URGENT:'紧急',NORMAL:'普通',LOW:'低优先级'} as Record<string,string>)[props.task.priority]??'未设置优先级')
 </script>
 <template>
@@ -17,7 +15,7 @@ const priority=computed(()=>({HIGH:'高优先级',URGENT:'紧急',NORMAL:'普通
   <div class="card-state"><StatusBadge :status="task.status" :overdue="overdue(task)"/><span v-if="task.taskId&&task.title!==task.taskTitle" class="card-parent">{{ task.taskTitle }}</span></div>
   <div v-if="task.attentionFlags?.length" class="card-flags"><span v-for="flag in task.attentionFlags" :key="flag">{{ flag }}</span></div>
   <dl class="card-meta"><div><dt><Building2 :size="14" aria-hidden="true"/>责任部门</dt><dd>{{ task.hostDeptName||task.deptName||'未指定部门' }}</dd></div><div><dt><UserRound :size="14" aria-hidden="true"/>负责人</dt><dd>{{ task.ownerName||task.hostOwnerName||(task.hostVisible===false?'当前岗位不可见':'待分派') }}</dd></div><div><dt><CalendarDays :size="14" aria-hidden="true"/>截止时间</dt><dd>{{ date(task.deadline) }}</dd></div></dl>
-  <div class="card-update"><div class="update-heading"><b>{{ task.progressSource||'最新进展' }}<span v-if="task.progressDeptName"> · {{ task.progressDeptName }}</span></b><span v-if="percent!==null">{{ percent }}%</span></div><p :class="{'no-progress':!task.latestProgress}" :title="task.latestProgress||undefined">{{ task.latestProgress||'暂无进展记录' }}</p><el-progress v-if="percent!==null" :percentage="percent" :show-text="false" :stroke-width="5"/><small v-if="task.progressAt">更新于 {{ date(task.progressAt) }}</small></div>
+  <div class="card-update"><div class="update-heading"><b>{{ task.progressSource||'最新进展' }}<span v-if="task.progressDeptName"> · {{ task.progressDeptName }}</span></b></div><p :class="{'no-progress':!task.latestProgress}" :title="task.latestProgress||undefined">{{ task.latestProgress||'暂无进展记录' }}</p><small v-if="task.progressAt">更新于 {{ date(task.progressAt) }}</small></div>
   <div v-if="showKeyWork" class="card-key-work"><p v-for="f in [{id:'progress',name:'推进情况'},{id:'problem',name:'存在问题'},{id:'suggestion',name:'解决建议'},{id:'coordination',name:'需领导协调'},{id:'remark',name:'备注'}]" :key="f.id"><b>{{ f.name }}：</b>{{ summaryValue(task.keyWorkData,f.id) }}</p><p><b>协调状态：</b>{{ ({NONE:'无需协调',PENDING:'待协调',IN_PROGRESS:'协调中',RESOLVED:'已解决'} as Row)[task.keyWorkData?.coordinationStatus||'NONE'] }}</p><p><b>领导反馈：</b>{{ task.keyWorkData?.feedback||'—' }}</p></div>
   <footer class="card-footer"><span>{{ task.companyName||'当前授权范围' }}<template v-if="task.workItemTotal"> · 子任务 {{ task.workItemCompleted }} / {{ task.workItemTotal }}</template></span><span class="card-details">查看详情 <ArrowUpRight :size="14" aria-hidden="true"/></span></footer>
  </router-link>
