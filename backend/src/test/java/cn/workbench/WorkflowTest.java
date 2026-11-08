@@ -1,7 +1,7 @@
 package cn.workbench;
 import org.junit.jupiter.api.*;import org.springframework.boot.test.context.SpringBootTest;import org.springframework.test.context.ActiveProfiles;import org.springframework.beans.factory.annotation.Autowired;import org.springframework.transaction.support.TransactionTemplate;import org.springframework.transaction.PlatformTransactionManager;import org.springframework.mock.web.MockHttpServletRequest;import java.util.*;import java.util.concurrent.*;import java.time.*;import static org.assertj.core.api.Assertions.*;import static cn.workbench.Records.map;
 @SpringBootTest(properties={"spring.datasource.url=jdbc:h2:mem:workflow;MODE=MySQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1","task.bootstrap-password=TestOnly-Synthetic12345","task.totp-key=AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8="}) @org.springframework.test.context.TestExecutionListeners(value={org.springframework.test.context.support.DependencyInjectionTestExecutionListener.class,org.springframework.test.context.transaction.TransactionalTestExecutionListener.class},mergeMode=org.springframework.test.context.TestExecutionListeners.MergeMode.REPLACE_DEFAULTS) @ActiveProfiles("test") class WorkflowTest {
- @Autowired WorkItemService workItems;@Autowired Auth auth;@Autowired TaskService tasks;@Autowired Records records;@Autowired Store db;@Autowired Policy policy;@Autowired Writes writes;@Autowired PlatformTransactionManager manager;@Autowired KpiController kpi;@Autowired Jsons json;
+ @Autowired KeyWorkService keyWork;@Autowired WorkItemService workItems;@Autowired Auth auth;@Autowired TaskService tasks;@Autowired Records records;@Autowired Store db;@Autowired Policy policy;@Autowired Writes writes;@Autowired PlatformTransactionManager manager;@Autowired KpiController kpi;@Autowired Jsons json;
  final Policy.Actor leader=new Policy.Actor(2,"COMPANY_LEADER",1,null,2),host=new Policy.Actor(3,"DEPT_HEAD",1,3,3),employee=new Policy.Actor(4,"EMPLOYEE",1,3,4),finance=new Policy.Actor(5,"DEPT_HEAD",1,4,5),other=new Policy.Actor(6,"DEPT_HEAD",2,5,6),admin=new Policy.Actor(1,"ADMIN",1,null,1);
  <T>T tx(java.util.function.Supplier<T> work){return new TransactionTemplate(manager).execute(s->work.get());}
  Map<String,Object> create(){return tx(()->tasks.create(leader,map("title","集成测试任务","content","合成数据，验证生命周期","companyId",1,"hostDeptId",3,"collaboratorDeptIds",List.of(4,5),"priority","NORMAL","deadline",Instant.now().plus(Duration.ofDays(2)).toString())));}
@@ -9,6 +9,35 @@ import org.junit.jupiter.api.*;import org.springframework.boot.test.context.Spri
  Map<String,Object> sub(long task,int dept){return records.children(task,"SUB_TASK").stream().filter(s->Jsons.integer(s.get("deptId"))==dept).findFirst().orElseThrow();}
  void receive(Policy.Actor a,long task,int dept){tx(()->tasks.subAction(a,id(sub(task,dept)),"receive",Map.of()));}
  void submit(Policy.Actor a,long task,int dept){var s=sub(task,dept);tx(()->tasks.subAction(a,id(s),"submit",map("summary","成果版本","version",s.get("version"))));}
+ @Test void keyWorkConfigurationAndValuesRetainHistoryAndEnforceScope(){
+  var task=create();long taskId=id(task);var fields=List.of(map("id","problem","name","存在问题","type","TEXT","required",true),map("id","count","name","数量","type","NUMBER","required",false));
+  tx(()->keyWork.configure(leader,taskId,map("version",task.get("version"),"fields",fields,"keyWork",true)));
+  tx(()->tasks.taskAction(leader,taskId,"confirm-assign",Map.of()));receive(host,taskId,3);
+  var current=records.get(taskId);tx(()->keyWork.fill(host,taskId,map("version",current.get("version"),"values",map("problem","需协调","count",2))));
+  var changed=records.get(taskId);assertThatThrownBy(()->tx(()->keyWork.fill(finance,taskId,map("version",changed.get("version"),"values",map("problem","越权"))))).isInstanceOf(ApiException.class);
+  assertThatThrownBy(()->tx(()->keyWork.fill(host,taskId,map("version",current.get("version"),"values",map("problem","旧版本"))))).isInstanceOf(ApiException.class);
+  tx(()->keyWork.configure(leader,taskId,map("version",changed.get("version"),"fields",List.of(fields.getFirst()),"keyWork",true)));
+  assertThat(records.children(taskId,"KEY_WORK_HISTORY")).anySatisfy(row->assertThat(String.valueOf(row.get("before"))).contains("count"));
+ }
+ @Test void keyWorkRejectsInvalidValuesAndLeadershipImpersonation(){
+  var task=create();long taskId=id(task);var fields=List.of(map("id","when","name","日期","type","DATE","required",true),map("id","choice","name","选项","type","SELECT","required",false,"options",List.of("甲","乙")));
+  tx(()->keyWork.configure(leader,taskId,map("version",task.get("version"),"fields",fields,"keyWork",true)));tx(()->tasks.taskAction(leader,taskId,"confirm-assign",Map.of()));receive(host,taskId,3);var current=records.get(taskId);
+  for(var vals:List.of(map("when","无效日期"),map("when","2026-12-01","choice","丙"),map("when","2026-12-01","unknown","无效"),map("choice","甲")))assertThatThrownBy(()->tx(()->keyWork.fill(host,taskId,map("version",current.get("version"),"values",vals)))).isInstanceOf(ApiException.class);
+  assertThatThrownBy(()->tx(()->keyWork.feedback(host,taskId,map("version",current.get("version"),"coordinationStatus","RESOLVED","feedback","无权反馈")))).isInstanceOf(ApiException.class);
+  assertThatThrownBy(()->tx(()->keyWork.configure(other,taskId,map("version",current.get("version"),"fields",fields,"keyWork",true)))).isInstanceOf(ApiException.class);
+  tx(()->keyWork.fill(host,taskId,map("version",current.get("version"),"values",map("when","2026-12-01","choice","甲"))));var filled=records.get(taskId);
+  assertThatThrownBy(()->tx(()->keyWork.configure(leader,taskId,map("version",filled.get("version"),"fields",List.of(fields.getFirst(),map("id","choice","name","选项","type","SELECT","required",false,"options",List.of("乙"))),"keyWork",true)))).isInstanceOf(ApiException.class);
+  tx(()->keyWork.feedback(leader,taskId,map("version",filled.get("version"),"coordinationStatus","IN_PROGRESS","feedback","协调中")));assertThat(KeyWorkService.data(records.get(taskId)).get("coordinationStatus")).isEqualTo("IN_PROGRESS");
+ }
+ @Test void keyWorkManagementAndEditingFollowTaskWorkflowBoundaries(){
+  var task=create();long taskId=id(task);var fields=List.of(map("id","issue","name","问题","type","TEXT","required",false));
+  tx(()->keyWork.configure(leader,taskId,map("version",task.get("version"),"fields",fields,"keyWork",true)));tx(()->tasks.taskAction(leader,taskId,"confirm-assign",Map.of()));receive(host,taskId,3);
+  var otherLeader=new Policy.Actor(5,"COMPANY_LEADER",1,null,77);var current=records.get(taskId);
+  assertThatThrownBy(()->tx(()->keyWork.configure(otherLeader,taskId,map("version",current.get("version"),"fields",fields,"keyWork",true)))).isInstanceOf(ApiException.class);
+  tx(()->keyWork.fill(otherLeader,taskId,map("version",current.get("version"),"values",map("issue","领导补充"))));
+  submit(host,taskId,3);var submitted=records.get(taskId);
+  assertThatThrownBy(()->tx(()->keyWork.fill(host,taskId,map("version",submitted.get("version"),"values",map("issue","提交后修改"))))).isInstanceOf(ApiException.class);
+ }
  @Test void organizationNamesAreIncludedInTaskAndIdentity(){var task=create();var detail=tasks.detail(leader,id(task));assertThat(detail.get("companyName")).isEqualTo(records.get(1).get("name"));assertThat(detail.get("hostDeptName")).isEqualTo(records.get(3).get("name"));var q=new MockHttpServletRequest();q.getSession().setAttribute("uid",3L);q.getSession().setAttribute("scopeId",3L);var me=auth.meData(q);assertThat(me.get("companyName")).isEqualTo(records.get(1).get("name"));assertThat(me.get("deptName")).isEqualTo(records.get(3).get("name"));assertThat((List<Map<String,Object>>)me.get("scopes")).isNotNull();}
  @Test void departmentHeadCreatesIndependentWorkItemsAndAssigneeUpdatesProgress(){
   var parent=create();long taskId=id(parent);tx(()->tasks.taskAction(leader,taskId,"confirm-assign",Map.of()));
