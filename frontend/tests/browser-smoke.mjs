@@ -160,6 +160,7 @@ try{
    await page.waitForTimeout(200)
    const size=await page.evaluate(()=>({scroll:document.documentElement.scrollWidth,width:window.innerWidth}))
    assert.ok(size.scroll<=size.width,`overflow ${width} ${path}: ${JSON.stringify(size)}`)
+   if(path==='/tasks/new'){assert.equal(await page.locator('.department-report-options').count(),1);assert.equal(await page.getByRole('heading',{name:'任务填报字段',exact:true}).count(),0);assert.equal(await page.locator('.department-report-options .el-checkbox').count(),5)}
    if(path==='/tasks/fixture-task'){
     assert.equal(await page.locator('.detail-hero .department-execution .subtask-card').count(),1,'department execution is in the top information block')
     assert.equal(await page.locator('.detail-main .subtask-card').count(),0,'department execution is not duplicated below')
@@ -171,7 +172,7 @@ try{
     assert.equal(await page.locator('#task-details #task-progress-records').count(),1)
     assert.equal(await page.getByRole('tab',{name:'子任务',exact:true}).count(),1)
     assert.equal(await page.locator('#pane-work .work-items').count(),0,'work items are in their own tab')
-    if(width>=1200){const main=await page.locator('.detail-main').boundingBox(),side=await page.locator('.detail-sidebar').boundingBox();assert.ok(side.x>=main.x+main.width,'comments appear to the right on desktop')}
+    if(width>=1200){const hero=await page.locator('.hero-summary').boundingBox(),dept=await page.locator('.department-execution').boundingBox();assert.ok(dept.x>=hero.x+hero.width,'department execution is merged to the upper-right');const main=await page.locator('.detail-main').boundingBox(),side=await page.locator('.detail-sidebar').boundingBox();assert.ok(side.x>=main.x+main.width,'comments appear to the right on desktop')}
     if(process.env.QA_SCREENSHOTS&&[375,1440].includes(width)){await mkdir('tests/results',{recursive:true});await page.evaluate(()=>window.scrollTo(0,0));await page.screenshot({path:`tests/results/detail-sidebar-${theme}-${width}.png`,fullPage:true})}
    }
    checks.push({theme,width,path,overflow:false});if(process.env.QA_SCREENSHOTS&&path==='/'&&[375,1440].includes(width)){await mkdir('tests/results',{recursive:true});await page.screenshot({path:`tests/results/dashboard-${theme}-${width}.png`,fullPage:true})}
@@ -213,7 +214,7 @@ try{
  assert.equal(await page.locator('.main-content .el-progress').count(),0)
  await page.getByRole('button',{name:'更新进度',exact:true}).click()
  await page.getByRole('dialog').waitFor()
- assert.equal(await page.getByRole('dialog').locator('.el-slider').count(),0,'report form has no percentage control')
+ assert.equal(await page.getByRole('dialog').locator('.el-slider').count(),0,'report form has no percentage control');assert.ok((await page.getByRole('dialog').innerText()).includes('推进情况'))
  await page.getByRole('button',{name:'确认更新进度',exact:true}).click()
  await page.getByText('请填写进展说明',{exact:true}).waitFor()
  await page.getByRole('dialog').locator('textarea').fill('已完成本轮资料核对，等待下一步确认。')
@@ -227,7 +228,7 @@ try{
  assert.ok(progressWrite.headers['idempotency-key'])
  assert.equal(progressWrite.body.version,2)
  assert.equal(progressWrite.body.percent,45,'text reporting preserves the existing numeric API value')
- assert.equal(progressWrite.body.note,'已完成本轮资料核对，等待下一步确认。')
+ assert.equal(progressWrite.body.note,'推进情况：已完成本轮资料核对，等待下一步确认。')
  await page.getByRole('tab',{name:'子任务',exact:true}).click()
  await page.locator('.work-item .el-select').click()
  await page.getByRole('option',{name:'已完成',exact:true}).click()
