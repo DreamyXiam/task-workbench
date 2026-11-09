@@ -163,13 +163,15 @@ try{
    if(path==='/tasks/fixture-task'){
     assert.equal(await page.locator('.detail-hero .department-execution .subtask-card').count(),1,'department execution is in the top information block')
     assert.equal(await page.locator('.detail-main .subtask-card').count(),0,'department execution is not duplicated below')
-    assert.equal(await page.locator('.detail-sidebar .overview').count(),1,'task progress is in the side column')
+    assert.equal(await page.locator('.detail-sidebar .overview').count(),0,'task progress block is removed')
     assert.equal(await page.locator('.detail-sidebar .comments-panel').count(),1)
     assert.equal(await page.locator('.key-work').count(),0,'standalone task reporting section is removed')
     assert.equal(await page.getByRole('tab',{name:'操作时间线',exact:true}).count(),0)
     assert.equal(await page.getByRole('tab',{name:'进度记录',exact:true}).count(),0,'history is merged into task and execution')
     assert.equal(await page.locator('#task-details #task-progress-records').count(),1)
-    if(width>=1200){const main=await page.locator('.detail-main').boundingBox(),side=await page.locator('.detail-sidebar').boundingBox();assert.ok(side.x>=main.x+main.width,'task progress appears to the right on desktop')}
+    assert.equal(await page.getByRole('tab',{name:'子任务',exact:true}).count(),1)
+    assert.equal(await page.locator('#pane-work .work-items').count(),0,'work items are in their own tab')
+    if(width>=1200){const main=await page.locator('.detail-main').boundingBox(),side=await page.locator('.detail-sidebar').boundingBox();assert.ok(side.x>=main.x+main.width,'comments appear to the right on desktop')}
     if(process.env.QA_SCREENSHOTS&&[375,1440].includes(width)){await mkdir('tests/results',{recursive:true});await page.evaluate(()=>window.scrollTo(0,0));await page.screenshot({path:`tests/results/detail-sidebar-${theme}-${width}.png`,fullPage:true})}
    }
    checks.push({theme,width,path,overflow:false});if(process.env.QA_SCREENSHOTS&&path==='/'&&[375,1440].includes(width)){await mkdir('tests/results',{recursive:true});await page.screenshot({path:`tests/results/dashboard-${theme}-${width}.png`,fullPage:true})}
@@ -204,12 +206,9 @@ try{
  await page.setViewportSize({width:1440,height:1000})
  await page.goto('http://127.0.0.1:5173/#/tasks/fixture-task')
  await page.locator('.detail-hero').waitFor()
- await page.getByRole('tab',{name:'附件与版本',exact:true}).click()
- await page.getByRole('button',{name:'查看进度记录 →',exact:true}).click()
  await page.getByText('推进情况：历史字段汇报仍可查看',{exact:true}).waitFor()
- assert.equal(await page.getByRole('tab',{name:'任务与执行',exact:true}).getAttribute('aria-selected'),'true','sidebar history link opens the work pane containing progress records')
- const historyPosition=await page.locator('#task-progress-records').boundingBox()
- assert.ok(historyPosition.y>=64,'progress records are positioned below the fixed header')
+ assert.equal(await page.getByRole('heading',{name:'任务进展',exact:true}).count(),0)
+ assert.equal(await page.getByRole('tab',{name:'子任务',exact:true}).count(),1)
  assert.ok(!/\d+%/.test(await page.locator('.main-content').innerText()),'task detail and work items show states only')
  assert.equal(await page.locator('.main-content .el-progress').count(),0)
  await page.getByRole('button',{name:'更新进度',exact:true}).click()
@@ -229,6 +228,7 @@ try{
  assert.equal(progressWrite.body.version,2)
  assert.equal(progressWrite.body.percent,45,'text reporting preserves the existing numeric API value')
  assert.equal(progressWrite.body.note,'已完成本轮资料核对，等待下一步确认。')
+ await page.getByRole('tab',{name:'子任务',exact:true}).click()
  await page.locator('.work-item .el-select').click()
  await page.getByRole('option',{name:'已完成',exact:true}).click()
  await page.locator('.work-item').getByRole('button',{name:'保存',exact:true}).click()
