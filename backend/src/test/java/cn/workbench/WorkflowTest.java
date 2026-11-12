@@ -9,6 +9,28 @@ import org.junit.jupiter.api.*;import org.springframework.boot.test.context.Spri
  Map<String,Object> sub(long task,int dept){return records.children(task,"SUB_TASK").stream().filter(s->Jsons.integer(s.get("deptId"))==dept).findFirst().orElseThrow();}
  void receive(Policy.Actor a,long task,int dept){tx(()->tasks.subAction(a,id(sub(task,dept)),"receive",Map.of()));}
  void submit(Policy.Actor a,long task,int dept){var s=sub(task,dept);tx(()->tasks.subAction(a,id(s),"submit",map("summary","成果版本","version",s.get("version"))));}
+ @Test void collectionColumnsAreFixedAtPublishAndDriveDraftSubmitAndExport(){
+  var columns=List.of(map("id","progress","name","推进状态"),map("id","custom_0123456789abcdef0123456789abcdef","name","领导关注点"));
+  var created=tx(()->forms.create(leader,map("title","自定义列","companyId",1,"departmentIds",List.of(3),"deadline",Instant.now().plusSeconds(86400).toString(),"columns",columns)));long formId=id(created);
+  assertThat(created.get("columns")).isEqualTo(columns);
+  assertThatThrownBy(()->tx(()->forms.save(host,formId,true,map("version",0,"rows",List.of(map("content","不可提交")))))).isInstanceOf(ApiException.class);
+  var row=map("progress","已完成","custom_0123456789abcdef0123456789abcdef","=1+1");
+  tx(()->forms.save(host,formId,false,map("version",0,"rows",List.of(row))));
+  assertThat(((List<?>)((List<Map<String,Object>>)forms.detail(host,formId).get("responses")).getFirst().get("rows"))).hasSize(1);
+  tx(()->forms.save(host,formId,true,map("version",1,"rows",List.of(row))));
+  assertThat(forms.exportHeaders(leader,formId)).containsExactly("部门","序号","推进状态","领导关注点");
+  assertThat(forms.exportRows(leader,formId).getFirst()).containsExactly(String.valueOf(records.get(3).get("name")),"1","已完成","=1+1");
+  assertThat(forms.detail(leader,formId).get("status")).isEqualTo("COMPLETED");
+ }
+ @Test void collectionColumnsRejectEmptyDuplicateAndUntrustedKeys(){
+  var base=map("title","列规则","companyId",1,"departmentIds",List.of(3),"deadline",Instant.now().plusSeconds(86400).toString());
+  for(var columns:List.of(List.of(),List.of(map("id","progress","name","重复"),map("id","remark","name","重复")),List.of(map("id","evil","name","非法")))){var input=new LinkedHashMap<>(base);input.put("columns",columns);assertThatThrownBy(()->tx(()->forms.create(leader,input))).isInstanceOf(ApiException.class);}
+ }
+ @Test void legacyCollectionWithoutColumnSnapshotStillShowsOriginalSevenColumns(){
+  var old=tx(()->records.create("FORM_COLLECTION",1,null,null,leader.uid(),"ACTIVE",map("title","旧填表","deadline",Instant.now().plusSeconds(86400).toString(),"departmentIds",List.of(3),"creatorId",leader.uid())));
+  assertThat(((List<?>)forms.detail(leader,id(old)).get("columns"))).hasSize(7);
+  assertThat(forms.exportHeaders(leader,id(old))).containsExactly("部门","序号","工作内容","推进情况","存在问题","解决建议","需要领导协调解决工作","时间要求","备注");
+ }
  @Test void departmentFormDraftIsolationAndDirectCompletion(){
   var created=tx(()->forms.create(leader,map("title","部门多行表格","companyId",1,"departmentIds",List.of(3,4),"deadline",Instant.now().plusSeconds(86400).toString())));long formId=id(created);
   assertThatThrownBy(()->forms.detail(other,formId)).isInstanceOf(ApiException.class);
