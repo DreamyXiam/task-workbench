@@ -3,7 +3,7 @@ import org.springframework.web.bind.annotation.*;import jakarta.servlet.http.Htt
 @RestController @RequestMapping("/api/v1") public class OrganizationController {
  final Store db;final Records r;final Policy p;final Writes w;final PasswordEncoder passwords;public OrganizationController(Store db,Records r,Policy p,Writes w,PasswordEncoder passwords){this.db=db;this.r=r;this.p=p;this.w=w;this.passwords=passwords;}
  static final Map<String,String>KINDS=Map.of("companies","COMPANY","departments","DEPARTMENT","tags","TAG","rules","RULE","notification-channels","CHANNEL");
- @GetMapping("/organization/departments") Object departments(HttpServletRequest q,@RequestParam(required=false)Integer companyId){var a=p.actor(q);Integer company=companyId==null?a.company():companyId;if(company!=null&&!a.globalAdmin())p.company(a,company);return Api.ok(r.list("DEPARTMENT",company,null).stream().filter(d->Boolean.TRUE.equals(d.get("enabled"))).toList());}
+ @GetMapping("/organization/departments") Object departments(HttpServletRequest q,@RequestParam(required=false)Integer companyId){var a=p.actor(q);Integer company=companyId==null?a.company():companyId;if(company!=null&&!a.globalAdmin())p.company(a,company);return Api.ok(r.list("DEPARTMENT",company,null).stream().filter(d->Boolean.TRUE.equals(d.get("enabled"))).map(d->{var result=new LinkedHashMap<>(d);result.put("companyName",r.get(Jsons.number(d.get("companyId"))).get("name"));return result;}).toList());}
  @GetMapping("/organization/collaboration-departments") Object collaborationDepartments(HttpServletRequest request){
   var actor=p.actor(request);if(!actor.leader()&&!actor.globalAdmin())throw ApiException.denied();
   Map<Integer,String> companies=new TreeMap<>();
