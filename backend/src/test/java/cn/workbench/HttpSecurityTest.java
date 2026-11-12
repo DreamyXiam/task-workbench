@@ -2,6 +2,38 @@ package cn.workbench;
 import org.junit.jupiter.api.*;import org.springframework.boot.test.context.SpringBootTest;import org.springframework.test.context.ActiveProfiles;import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;import org.springframework.beans.factory.annotation.Autowired;import org.springframework.test.web.servlet.MockMvc;import org.springframework.mock.web.MockHttpSession;import org.springframework.test.web.servlet.MvcResult;import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;import static org.assertj.core.api.Assertions.*;
 @SpringBootTest(properties={"task.bootstrap-password=TestOnly-Synthetic12345","task.totp-key=AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8="}) @org.springframework.test.context.TestExecutionListeners(value={org.springframework.test.context.support.DependencyInjectionTestExecutionListener.class,org.springframework.test.context.transaction.TransactionalTestExecutionListener.class},mergeMode=org.springframework.test.context.TestExecutionListeners.MergeMode.REPLACE_DEFAULTS) @ActiveProfiles("test") @AutoConfigureMockMvc class HttpSecurityTest {
  @Autowired MockMvc mvc;@Autowired Store db;
+ @Test @org.springframework.transaction.annotation.Transactional void roleCatalogDistinguishesSupportedAndEffectiveFeatures()throws Exception{
+  jdbc.update("UPDATE user_scope SET company_id=NULL WHERE user_id=1");var global=session("demo.admin");
+  mvc.perform(get("/api/v1/admin/role-permissions").session(global)).andExpect(status().isOk()).andExpect(jsonPath("$.data.roles[0].supported").isArray()).andExpect(jsonPath("$.data.roles[0].effective").isArray());
+  mvc.perform(get("/api/v1/auth/me").session(session("demo.employee"))).andExpect(status().isOk()).andExpect(jsonPath("$.data.permissions").value(org.hamcrest.Matchers.not(org.hamcrest.Matchers.hasItem("ORG_ADMIN"))));
+ }
+ void auditFixture(){for(int company:java.util.List.of(1,2))jdbc.update("INSERT INTO audit_event(actor_id,company_id,action,object_id,trace_id,previous_hash,event_hash) VALUES(2,?,'TASK_EXPORT_CSV',0,?,'test','test')",company,"audit-test-"+company);}
+ @Test @org.springframework.transaction.annotation.Transactional void auditMapsNamesAndPagesWithinCompanyBoundary()throws Exception{
+  auditFixture();var leader=session("demo.leader");
+  mvc.perform(get("/api/v1/audit").session(leader).param("keyword","audit-test").param("pageSize","1")).andExpect(status().isOk()).andExpect(jsonPath("$.data.total").value(1)).andExpect(jsonPath("$.data.items[0].companyId").value(1)).andExpect(jsonPath("$.data.items[0].actorName").isNotEmpty()).andExpect(jsonPath("$.data.items[0].actionLabel").value("导出任务统计 · CSV")).andExpect(jsonPath("$.data.items[0].createdAt").isNotEmpty()).andExpect(jsonPath("$.data.items[0].traceId").value("audit-test-1")).andExpect(jsonPath("$.data.items[0].passwordHash").doesNotExist());
+  mvc.perform(get("/api/v1/audit").session(leader).param("companyId","2")).andExpect(status().isForbidden());
+ }
+ @Test @org.springframework.transaction.annotation.Transactional void auditGlobalScopeAndFilteredExportRequireFreshVerification()throws Exception{
+  auditFixture();jdbc.update("UPDATE user_scope SET company_id=NULL WHERE user_id=1");var global=session("demo.admin");
+  mvc.perform(get("/api/v1/audit").session(global).param("keyword","audit-test")).andExpect(status().isOk()).andExpect(jsonPath("$.data.total").value(2));
+  mvc.perform(get("/api/v1/audit/export").session(global).param("keyword","audit-test").param("format","xlsx")).andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("FRESH_TOTP_REQUIRED"));
+  global.setAttribute("totpAt",System.currentTimeMillis());
+  mvc.perform(get("/api/v1/audit/export").session(global).param("keyword","audit-test-2").param("format","csv")).andExpect(status().isOk()).andExpect(content().string(org.hamcrest.Matchers.allOf(org.hamcrest.Matchers.containsString("操作人"),org.hamcrest.Matchers.containsString("audit-test-2"),org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("audit-test-1")))));
+  mvc.perform(get("/api/v1/audit").session(global).param("from","bad")).andExpect(status().isUnprocessableEntity());
+  mvc.perform(get("/api/v1/audit").session(global).param("pageSize","500")).andExpect(status().isUnprocessableEntity());
+  mvc.perform(get("/api/v1/audit").session(session("demo.employee"))).andExpect(status().isForbidden());
+ }
+ @Test @org.springframework.transaction.annotation.Transactional void globalAdminCanReadReportsAndKpiWithoutBecomingBusinessLeader()throws Exception{
+  jdbc.update("UPDATE user_scope SET company_id=NULL WHERE user_id=1");var global=session("demo.admin");
+  mvc.perform(get("/api/v1/stats/dept").session(global)).andExpect(status().isOk()).andExpect(jsonPath("$.data.length()").value(3));
+  mvc.perform(get("/api/v1/kpi/runs").session(global)).andExpect(status().isOk());
+  mvc.perform(get("/api/v1/kpi/scores").session(global)).andExpect(status().isOk());
+  mvc.perform(get("/api/v1/kpi/runs").session(global).param("companyId","2")).andExpect(status().isOk());
+ }
+ @Test @org.springframework.transaction.annotation.Transactional void companyAdminAndEmployeeDoNotGainBusinessStatistics()throws Exception{
+  var admin=session("demo.admin");var employee=session("demo.employee");
+  for(var current:java.util.List.of(admin,employee))for(String path:java.util.List.of("/stats/dept","/kpi/scores"))mvc.perform(get("/api/v1"+path).session(current)).andExpect(status().isForbidden());
+ }
  @Test @org.springframework.transaction.annotation.Transactional void overviewFiltersAttentionBeforeLimitingAndKeepsCompanyScope()throws Exception{
   var leader=session("demo.leader");var actor=new Policy.Actor(2,"COMPANY_LEADER",1,null,2);
   var important=tasks.create(actor,Records.map("title","临期需关注","content","测试","companyId",1,"hostDeptId",3,"deadline",java.time.Instant.now().plusSeconds(3600).toString()));

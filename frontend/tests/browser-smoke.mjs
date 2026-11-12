@@ -47,6 +47,8 @@ await page.route('**/api/v1/**',async route=>{const req=route.request(),url=new 
  else if(path==='/admin/companies')data=companies
  else if(path==='/admin/departments')data=departments
  else if(path==='/admin/users')data=[{...me(),enabled:true,scopes:[{role:'ADMIN',companyId:'fixture-company',enabled:true},{role:'ADMIN',companyId:'fixture-company',enabled:false}]}]
+ else if(path==='/audit')data={items:[{id:1,actorId:1,actorName:'测试人员',companyId:1,companyName:'测试公司',action:'TASK_EXPORT_CSV',actionLabel:'导出任务统计 · CSV',objectType:'任务与执行',objectId:0,traceId:'fixture-audit-trace',createdAt:'2026-11-10T02:00:00Z'}],total:1,actions:[{value:'TASK_EXPORT_CSV',label:'导出任务统计 · CSV'}]}
+ else if(path==='/admin/role-permissions')data={catalog:{TASK_VIEW:'查看任务',TASK_CREATE:'创建主任务',REPORTS:'统计与导出',KPI:'部门考核',ORG_ADMIN:'公司与部门管理'},roles:[{role:'COMPANY_LEADER',version:0,disabled:[],supported:['TASK_VIEW','TASK_CREATE','REPORTS','KPI'],effective:['TASK_VIEW','TASK_CREATE','REPORTS','KPI']},{role:'EMPLOYEE',version:0,disabled:[],supported:['TASK_VIEW'],effective:['TASK_VIEW']}]}
  else if(path.startsWith('/admin/'))data=[]
  await route.fulfill({json:{code:'OK',message:'',data,traceId:'fixture-trace'}})
 })
@@ -392,6 +394,32 @@ try{
  await page.getByText('退出登录',{exact:true}).click()
  await page.getByRole('heading',{name:'登录工作台'}).waitFor()
  assert.equal(await page.locator('.watermark').count(),0,'logout destroys watermark')
+ role='ADMIN';adminGlobal=true;loggedIn=true
+ await page.goto('http://127.0.0.1:5173/#/admin/audit-logs');await page.reload()
+ await page.getByRole('heading',{name:'操作日志',exact:true}).waitFor()
+ await page.locator('.audit-row').click()
+ await page.getByRole('dialog',{name:'操作记录详情'}).getByText('fixture-audit-trace',{exact:true}).waitFor()
+ await page.getByRole('dialog',{name:'操作记录详情'}).getByRole('button',{name:'关闭',exact:true}).click()
+ checks.push({auditDetails:true})
+ for(const theme of ['light','dark']){
+  await page.evaluate(t=>document.documentElement.dataset.theme=t,theme)
+  for(const width of [375,768,1440])for(const path of ['/admin/permissions','/admin/audit-logs','/organization-changes']){
+   await page.setViewportSize({width,height:1000});await page.goto('http://127.0.0.1:5173/#'+path);await page.locator(`.route-page[data-route-path="${path}"]:not([class*="enter-active"]):not([class*="leave-active"]) h1`).first().waitFor()
+   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),`management overflow ${theme} ${width} ${path}`)
+   checks.push({theme,width,path,overflow:false})
+  }
+ }
+ await page.goto('http://127.0.0.1:5173/#/admin/permissions')
+ await page.locator('.role-option').filter({hasText:'公司领导'}).waitFor()
+ await page.locator('.permission-option').filter({hasText:'查看任务'}).locator('.el-switch').click()
+ await page.getByText('有未保存调整',{exact:false}).waitFor()
+ assert.equal(await page.getByRole('switch',{name:'统计与导出',exact:true}).isDisabled(),true,'task dependency disables report switch')
+ await page.locator('.role-option').filter({hasText:'员工'}).click()
+ await page.getByRole('button',{name:'继续编辑',exact:true}).click()
+ await page.getByRole('button',{name:'撤销调整',exact:true}).click()
+ await page.locator('.role-option').filter({hasText:'员工'}).click()
+ assert.equal(await page.getByRole('switch',{name:'公司与部门管理',exact:true}).isDisabled(),true,'unsupported privilege cannot be enabled')
+ checks.push({permissionDependencies:true,unsavedChangesGuard:true,unsupportedPrivileges:true})
  assert.deepEqual(issues,[],'no browser runtime errors')
  await mkdir('tests/results',{recursive:true})
  await writeFile('tests/results/browser-smoke.json',JSON.stringify({mode:'synthetic API fixture only',checks,writes:writes.map(w=>({path:w.path,csrf:!!w.headers['x-csrf-token'],idempotency:!!w.headers['idempotency-key']})),issues},null,2))

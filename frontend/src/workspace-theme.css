@@ -28,6 +28,14 @@
   --el-fill-color-light:#27272a;
 }
 body {background:var(--bg);color:var(--text);font-size:14px;line-height:1.55}
+/* Shared management pattern: quiet records, readable metadata, a single action hierarchy. */
+.records-toolbar {display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.records-toolbar>.el-input {flex:1 1 260px;min-width:180px}
+.records-toolbar>.el-select {width:210px;flex:0 1 210px}
+.records-toolbar>.el-date-editor {flex:1 1 260px;max-width:340px;min-width:220px}
+.scope-chip {display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface-muted);border-radius:6px;padding:5px 9px;font-size:11px;color:var(--muted);white-space:nowrap}
+.action-strip .el-button {gap:6px}
+@media(max-width:600px){.records-toolbar>.el-input,.records-toolbar>.el-select,.records-toolbar>.el-date-editor{width:100%;max-width:none;flex-basis:100%;min-width:0}.records-toolbar>.action-strip{width:100%}}
 h1,h2,h3 {color:var(--text);letter-spacing:-.025em}
 h1 {font-size:26px;line-height:1.25;font-weight:650}
 h2 {font-size:16px;font-weight:650}
