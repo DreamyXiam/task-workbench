@@ -92,7 +92,7 @@ Follow [deployment and rollback](docs/operations/deployment.md) to configure Lin
 
 | Audience | Start here |
 | --- | --- |
-| Users and administrators | [Task UI and reporting](docs/operations/task-ui-guide.md) · [User/admin guide](docs/operations/user-admin-guide.md) |
+| Users and administrators | [Task UI and reporting](docs/operations/task-ui-guide.md) · [User/admin guide](docs/operations/user-admin-guide.md) · [Management UI and audit](docs/operations/management-ui.md) |
 | Developers | [Development](docs/development.md) · [API notes](docs/api/contract-notes.md) · [OpenAPI](docs/api/openapi.yaml) |
 | Operators | [Deployment](docs/operations/deployment.md) · [Backups](docs/operations/backup-restore.md) · [Monitoring](docs/operations/monitoring.md) |
 | Evaluators | [Requirements](docs/requirements/v15-tasks.md) · [Implementation evidence](docs/implementation/) · [Release checklist](docs/release/v1.5-release-checklist.md) |

@@ -105,3 +105,5 @@ Set-Location ..
 原创代码采用 [GNU AGPL v3.0 only](LICENSE)（`AGPL-3.0-only`）。第三方组件保留各自许可证，依赖清单、SBOM 与分发条件见[许可证审查记录](docs/release/licenses/REVIEW.md)。网络部署修改版须提供与实际版本对应的[源码入口](docs/release/source-distribution.md)。
 
 参与开发请阅读[贡献指南](CONTRIBUTING.md)；报告漏洞请使用[安全报告流程](SECURITY.md)。公开和发布状态以[开源准备清单](docs/release/open-source-readiness.md)为准。
+
+管理界面、日志字段与导出说明参见[管理界面与权限](docs/operations/management-ui.md)。

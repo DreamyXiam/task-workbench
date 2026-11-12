@@ -24,5 +24,5 @@ export const date=(value:unknown):string=>value?new Intl.DateTimeFormat('zh-CN',
 export const overdue=(row:Row):boolean=>{if(row.everOverdue)return true;if(!row.deadline)return false;const deadline=new Date(row.deadline).getTime(),completed=row.submittedAt??row.summarizedAt;if(completed)return new Date(completed).getTime()>deadline;return !['COMPLETED','ACCEPTED','CANCELLED'].includes(row.status)&&deadline<Date.now()}
 
 export const kpiDisplayScore=(row:Row):number|null=>row.finalScore??row.adjustedScore??row.rawScore??row.score??null
-export const canReadKpiScores=(role:string):boolean=>['GROUP_LEADER','DIVISION_LEADER','COMPANY_LEADER','DEPT_HEAD'].includes(role)
+export const canReadKpiScores=(role:string,globalAdmin=false):boolean=>['GROUP_LEADER','DIVISION_LEADER','COMPANY_LEADER','DEPT_HEAD'].includes(role)||role==='ADMIN'&&globalAdmin
 export function reworkDepartmentOptions(task:Row):Row[]{const result=new Map<string,Row>();for(const sub of task.subTasks??[]){if(sub.deptId!=null)result.set(String(sub.deptId),{id:sub.deptId,name:sub.deptName??sub.departmentName??'部门 '+sub.deptId})}return [...result.values()]}
