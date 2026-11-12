@@ -17,6 +17,7 @@ An organizational workbench for assigning tasks, coordinating departments, recor
 | Written updates and delivery | Record updates, submit results, summarize and accept through explicit workflow actions |
 | Multi-year timeline | Browse report clips using a full-cycle overview and month, week or day windows |
 | Independent work items | Assign smaller items to people and select In progress or Completed |
+| Department form collection | Publish a table, collect multi-row drafts and final submissions without approval, and [export submitted rows to Excel](docs/operations/department-forms.md) |
 | Scoped access and audit | Apply company, department and role boundaries to actions, attachments and records |
 | Collaboration and assessment | Confirm cross-company work, follow notifications and inspect auditable KPI snapshots |
 | Desktop and mobile themes | Use the same workflow in light and dark layouts, including narrow screens |

@@ -1,7 +1,7 @@
 package cn.workbench;
 import org.junit.jupiter.api.*;import org.springframework.boot.test.context.SpringBootTest;import org.springframework.test.context.ActiveProfiles;import org.springframework.beans.factory.annotation.Autowired;import org.springframework.transaction.support.TransactionTemplate;import org.springframework.transaction.PlatformTransactionManager;import org.springframework.mock.web.MockHttpServletRequest;import java.util.*;import java.util.concurrent.*;import java.time.*;import static org.assertj.core.api.Assertions.*;import static cn.workbench.Records.map;
 @SpringBootTest(properties={"spring.datasource.url=jdbc:h2:mem:workflow;MODE=MySQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1","task.bootstrap-password=TestOnly-Synthetic12345","task.totp-key=AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8="}) @org.springframework.test.context.TestExecutionListeners(value={org.springframework.test.context.support.DependencyInjectionTestExecutionListener.class,org.springframework.test.context.transaction.TransactionalTestExecutionListener.class},mergeMode=org.springframework.test.context.TestExecutionListeners.MergeMode.REPLACE_DEFAULTS) @ActiveProfiles("test") class WorkflowTest {
- @Autowired org.springframework.jdbc.core.JdbcTemplate jdbc;@Autowired DashboardSummary dashboard;@Autowired KeyWorkService keyWork;@Autowired WorkItemService workItems;@Autowired Auth auth;@Autowired TaskService tasks;@Autowired Records records;@Autowired Store db;@Autowired Policy policy;@Autowired Writes writes;@Autowired PlatformTransactionManager manager;@Autowired KpiController kpi;@Autowired Jsons json;
+ @Autowired FormCollectionService forms;@Autowired org.springframework.jdbc.core.JdbcTemplate jdbc;@Autowired DashboardSummary dashboard;@Autowired KeyWorkService keyWork;@Autowired WorkItemService workItems;@Autowired Auth auth;@Autowired TaskService tasks;@Autowired Records records;@Autowired Store db;@Autowired Policy policy;@Autowired Writes writes;@Autowired PlatformTransactionManager manager;@Autowired KpiController kpi;@Autowired Jsons json;
  final Policy.Actor leader=new Policy.Actor(2,"COMPANY_LEADER",1,null,2),host=new Policy.Actor(3,"DEPT_HEAD",1,3,3),employee=new Policy.Actor(4,"EMPLOYEE",1,3,4),finance=new Policy.Actor(5,"DEPT_HEAD",1,4,5),other=new Policy.Actor(6,"DEPT_HEAD",2,5,6),admin=new Policy.Actor(1,"ADMIN",1,null,1);
  <T>T tx(java.util.function.Supplier<T> work){return new TransactionTemplate(manager).execute(s->work.get());}
  Map<String,Object> create(){return tx(()->tasks.create(leader,map("title","集成测试任务","content","合成数据，验证生命周期","companyId",1,"hostDeptId",3,"collaboratorDeptIds",List.of(4,5),"priority","NORMAL","deadline",Instant.now().plus(Duration.ofDays(2)).toString())));}
@@ -9,6 +9,30 @@ import org.junit.jupiter.api.*;import org.springframework.boot.test.context.Spri
  Map<String,Object> sub(long task,int dept){return records.children(task,"SUB_TASK").stream().filter(s->Jsons.integer(s.get("deptId"))==dept).findFirst().orElseThrow();}
  void receive(Policy.Actor a,long task,int dept){tx(()->tasks.subAction(a,id(sub(task,dept)),"receive",Map.of()));}
  void submit(Policy.Actor a,long task,int dept){var s=sub(task,dept);tx(()->tasks.subAction(a,id(s),"submit",map("summary","成果版本","version",s.get("version"))));}
+ @Test void departmentFormDraftIsolationAndDirectCompletion(){
+  var created=tx(()->forms.create(leader,map("title","部门多行表格","companyId",1,"departmentIds",List.of(3,4),"deadline",Instant.now().plusSeconds(86400).toString())));long formId=id(created);
+  assertThatThrownBy(()->forms.detail(other,formId)).isInstanceOf(ApiException.class);
+  var own=(List<Map<String,Object>>)forms.detail(host,formId).get("responses");assertThat(own).hasSize(1);var response=own.getFirst();
+  var rows=List.of(map("content","工作一","progress","进行中","remark","=1+1"),map("content","工作二","coordination","请协调资源"));
+  tx(()->forms.save(host,formId,false,map("version",response.get("version"),"rows",rows)));
+  var leaderResponses=(List<Map<String,Object>>)forms.detail(leader,formId).get("responses");assertThat(leaderResponses.getFirst()).doesNotContainKey("rows");assertThat(forms.exportRows(leader,formId)).isEmpty();
+  assertThatThrownBy(()->tx(()->forms.save(host,formId,true,map("version",response.get("version"),"rows",rows)))).isInstanceOf(ApiException.class);
+  var draft=((List<Map<String,Object>>)forms.detail(host,formId).get("responses")).getFirst();
+  tx(()->forms.save(host,formId,true,map("version",draft.get("version"),"rows",rows)));
+  assertThat(forms.exportRows(leader,formId)).hasSize(2);assertThat(forms.exportRows(leader,formId).getFirst().getLast()).isEqualTo("=1+1");
+  assertThatThrownBy(()->forms.exportRows(finance,formId)).isInstanceOf(ApiException.class);
+  assertThatThrownBy(()->tx(()->forms.save(host,formId,false,map("version",draft.get("version"),"rows",rows)))).isInstanceOf(ApiException.class);
+  var financeDraft=((List<Map<String,Object>>)forms.detail(finance,formId).get("responses")).getFirst();assertThat((List<?>)financeDraft.get("rows")).isEmpty();
+  tx(()->forms.save(finance,formId,true,map("version",financeDraft.get("version"),"rows",List.of(map("content","财务事项")))));
+  assertThat(forms.detail(leader,formId).get("status")).isEqualTo("COMPLETED");assertThat(forms.exportRows(leader,formId)).hasSize(3);
+ }
+ @Test void departmentFormValidatesInputAndPermissionMapping(){
+  assertThatThrownBy(()->tx(()->forms.create(leader,map("title","无效","companyId",1,"departmentIds",List.of(5),"deadline",Instant.now().plusSeconds(86400).toString())))).isInstanceOf(ApiException.class);
+  var f=tx(()->forms.create(leader,map("title","必填校验","companyId",1,"departmentIds",List.of(3),"deadline",Instant.now().plusSeconds(86400).toString())));long fid=id(f);
+  assertThatThrownBy(()->tx(()->forms.save(host,fid,true,map("version",0,"rows",List.of(map("progress","没有工作内容")))))).isInstanceOf(ApiException.class);
+  assertThatThrownBy(()->tx(()->forms.save(host,fid,false,map("version",0,"rows",List.of(map("content","事项","deptId",4)))))).isInstanceOf(ApiException.class);
+  var request=new MockHttpServletRequest("POST","/api/v1/collections/12/submit");assertThat(RolePermissions.required(request)).isEqualTo("TASK_UPDATE");request.setMethod("GET");request.setRequestURI("/api/v1/collections/12/export");assertThat(RolePermissions.required(request)).isEqualTo("REPORTS");
+ }
  @Test void dashboardProgressShowsOnlyAuthorizedDepartmentInformation(){
   var task=create();long taskId=id(task);tx(()->tasks.taskAction(leader,taskId,"confirm-assign",Map.of()));receive(host,taskId,3);receive(finance,taskId,4);
   tx(()->tasks.subAction(host,id(sub(taskId,3)),"progress",map("percent",20,"note","办公室进展")));tx(()->tasks.subAction(finance,id(sub(taskId,4)),"progress",map("percent",80,"note","财务私有进展")));
