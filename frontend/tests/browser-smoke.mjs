@@ -28,6 +28,7 @@ await page.route('**/api/v1/**',async route=>{const req=route.request(),url=new 
  if(path==='/work-items/fixture-item'&&method==='POST'){const body=req.postDataJSON();Object.assign(task.workItems[0],{percent:body.percent,status:body.percent===100?'COMPLETED':'IN_PROGRESS',version:2})}
  if(path==='/auth/csrf')data={token:'fixture-csrf',headerName:'X-CSRF-TOKEN'}
  else if(path==='/auth/me'){if(!loggedIn){await route.fulfill({status:401,json:{code:'UNAUTHENTICATED',message:'请登录',traceId:'fixture-auth'}});return}data=me()}
+ else if(path==='/collections')data=[]
  else if(path==='/stats/overview')data={total:12,inProgress:7,pendingAcceptance:3,overdue:2,completed:2,recentTasks:[task]}
  else if(path==='/stats/dept')data=[{deptId:'fixture-dept',deptName:'综合管理部',total:12,completed:2,overdue:2,inProgress:7,pendingAcceptance:3,completionRate:16.67}]
  else if(path==='/tasks'&&method==='POST')data={id:'batch-created-'+writes.length,status:'DRAFT'}
@@ -84,21 +85,33 @@ try{
  await page.waitForURL('**/#/tasks')
  await command.waitFor({state:'hidden'})
  await page.locator('.task-card').first().waitFor()
+ const navText=await page.locator('.sidebar nav > a').allTextContents()
+ assert.equal(navText[navText.indexOf('任务中心')+1],'部门填表与汇总','collection menu is directly under task center')
+ await page.locator('.sidebar').getByRole('link',{name:'部门填表与汇总',exact:true}).click()
+ await page.getByRole('heading',{name:'部门填表',exact:true}).waitFor()
+ assert.equal(await page.locator('.route-page').getAttribute('data-navigation-motion'),'page-slide')
+ assert.ok((await page.locator('.sidebar').getByRole('link',{name:'部门填表与汇总',exact:true}).getAttribute('class')).includes('active'))
+ await page.emulateMedia({reducedMotion:'reduce'})
+ const reducedDuration=await page.locator('.route-page').evaluate(el=>{el.classList.add('page-slide-enter-active');const d=window.getComputedStyle(el).transitionDuration;el.classList.remove('page-slide-enter-active');return d})
+ assert.equal(reducedDuration,'0s','reduced motion disables page animations')
+ await page.emulateMedia({reducedMotion:'no-preference'})
+ await page.locator('.sidebar').getByRole('link',{name:'任务中心',exact:true}).click()
+ await page.locator('.task-card').first().waitFor()
  assert.equal(await page.locator('.desktop-table').count(),0,'task center uses cards instead of the table')
  assert.ok((await page.locator('.task-card').first().innerText()).includes('卡片展示的最新执行记录'),'latest progress is visible without opening detail')
  assert.ok(!/\d+%/.test(await page.locator('.task-card').first().innerText()),'task cards show status without numeric progress')
  assert.equal(await page.locator('.task-card .el-progress').count(),0)
  await page.locator('.task-card').first().click({position:{x:8,y:8}})
  await page.waitForURL('**/#/tasks/fixture-task')
- await page.goto('http://127.0.0.1:5173/#/tasks')
+ await page.goto('http://127.0.0.1:5173/#/tasks');await page.locator('.route-page[data-route-path="/tasks"]:not([class*="enter-active"]):not([class*="leave-active"])').waitFor()
  await page.locator('.task-card').first().focus()
  await page.keyboard.press('Enter')
  await page.waitForURL('**/#/tasks/fixture-task')
- await page.goto('http://127.0.0.1:5173/#/tasks')
+ await page.goto('http://127.0.0.1:5173/#/tasks');await page.locator('.route-page[data-route-path="/tasks"]:not([class*="enter-active"]):not([class*="leave-active"])').waitFor()
  await page.getByRole('button',{name:'甘特图',exact:true}).click()
  await page.locator('.time-bar').click()
  await page.waitForURL('**/#/tasks/fixture-task')
- await page.goto('http://127.0.0.1:5173/#/tasks')
+ await page.goto('http://127.0.0.1:5173/#/tasks');await page.locator('.route-page[data-route-path="/tasks"]:not([class*="enter-active"]):not([class*="leave-active"])').waitFor()
  for(const theme of ['light','dark']){
   if(theme==='light'){
    const beforeWrites=writes.length
@@ -156,7 +169,7 @@ try{
   await page.setViewportSize({width,height:960})
   for(const path of ['/','/tasks','/tasks/new','/tasks/fixture-task','/kpi','/reports','/notifications','/organization-changes','/calendar-simulation']){
    await page.goto('http://127.0.0.1:5173/#'+path)
-   await page.locator('.main-content h1').first().waitFor()
+   await page.locator(`.route-page[data-route-path="${path}"]:not([class*="enter-active"]):not([class*="leave-active"]) h1`).first().waitFor()
    await page.waitForTimeout(200)
    const size=await page.evaluate(()=>({scroll:document.documentElement.scrollWidth,width:window.innerWidth}))
    assert.ok(size.scroll<=size.width,`overflow ${width} ${path}: ${JSON.stringify(size)}`)
@@ -240,6 +253,9 @@ try{
  await page.getByRole('button',{name:/公司领导/}).hover()
  await page.getByText('系统管理员 · 测试公司',{exact:true}).click()
  await page.getByRole('heading',{name:'管理工作台'}).waitFor()
+ await page.locator('.sidebar').getByRole('link',{name:'公司管理',exact:true}).click()
+ await page.getByRole('heading',{name:'公司管理',exact:true}).waitFor()
+ assert.equal(await page.locator('.route-page').getAttribute('data-navigation-motion'),'page-fade')
  await page.getByRole('button',{name:'切换为浅色模式'}).click()
  for(const theme of ['light','dark']){
   if(theme==='dark')await page.getByRole('button',{name:'切换为深色模式'}).click()
