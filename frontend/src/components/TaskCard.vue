@@ -34,7 +34,7 @@ const attention=computed(()=>props.task.attentionFlags?.filter((flag:string)=>fl
 .card-priority.priority-high{border-color:color-mix(in srgb,var(--danger) 28%,var(--line));background:color-mix(in srgb,var(--danger) 11%,var(--surface));color:var(--danger);font-weight:650}
 .task-card h2{font-size:18px;line-height:1.45;font-weight:700;margin:12px 0 10px;min-height:2.9em;overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
 .card-state{justify-content:flex-start;flex-wrap:wrap}
-.card-state :deep(.status){border:0;background:transparent;padding:0;font-size:12px;font-weight:650}
+.task-card .card-state :deep(.status){border:0;background:transparent;padding:0;font-size:12px;font-weight:650}
 .card-state :deep(.status-dot){width:6px;height:6px}
 .card-flags{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}
 .card-flags span{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:3px 7px;border-radius:5px;background:color-mix(in srgb,var(--warning) 11%,var(--surface));color:var(--warning)}
