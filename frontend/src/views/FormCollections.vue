@@ -7,6 +7,8 @@ import { useAuth } from '../stores/auth'
 import { date,listItems } from '../domain'
 import type { Row } from '../domain'
 import PageState from '../components/PageState.vue'
+import { usePoll } from '../composables'
+import { markDataUpdated } from '../data-refresh'
 
 const auth=useAuth(),route=useRoute(),router=useRouter()
 const items=ref<Row[]>([]),detail=ref<Row|null>(null),departments=ref<Row[]>([]),error=ref(''),busy=ref(false),loading=ref(false),dirty=ref(false),rows=ref<Row[]>([]),totp=ref(''),verifyNeeded=ref(false)
@@ -36,12 +38,13 @@ watch(()=>form.value.companyId,()=>{form.value.departmentIds=[]})
 function search(){appliedKeyword.value=keyword.value.trim().toLocaleLowerCase()}
 function reset(){keyword.value='';statusFilter.value='';search()}
 let request=0
-async function load(){if(dirty.value&&!window.confirm('当前修改尚未保存，是否重新加载？'))return;const run=++request;loading.value=true;error.value='';try{if(id.value){const d=await api.get<Row>('/collections/'+id.value);if(run!==request)return;if(detail.value?.id!==d.id)openResponses.value=d.responses.filter((r:Row)=>r.status==='SUBMITTED').map((r:Row)=>String(r.id));detail.value=d;const response=d.responses.find((r:Row)=>String(r.deptId)===String(auth.me?.deptId));rows.value=response?.rows?.length?structuredClone(response.rows):[blank()]}else{const d=await api.get<Row[]>('/collections');if(run!==request)return;items.value=d;detail.value=null}dirty.value=false}catch(e){if(run===request)error.value=errorText(e)}finally{if(run===request)loading.value=false}}
+async function load(automatic=false){if(dirty.value&&(automatic||!window.confirm('当前修改尚未保存，是否重新加载？')))return;const run=++request;loading.value=true;error.value='';try{if(id.value){const d=await api.get<Row>('/collections/'+id.value);if(run!==request||automatic&&dirty.value)return;if(detail.value?.id!==d.id)openResponses.value=d.responses.filter((r:Row)=>r.status==='SUBMITTED').map((r:Row)=>String(r.id));detail.value=d;const response=d.responses.find((r:Row)=>String(r.deptId)===String(auth.me?.deptId));rows.value=response?.rows?.length?structuredClone(response.rows):[blank()]}else{const d=await api.get<Row[]>('/collections');if(run!==request||automatic&&dirty.value)return;items.value=d;detail.value=null}dirty.value=false;markDataUpdated()}catch(e){if(run===request&&!(automatic&&dirty.value))error.value=errorText(e)}finally{if(run===request)loading.value=false}}
 async function create(){if(busy.value)return;if(!form.value.title.trim()||!form.value.companyId||!form.value.deadline||!form.value.departmentIds.length){error.value='请填写标题、公司、截止时间并选择接收部门';return}const names=form.value.columns.map((c:Row)=>c.name.trim());if(!names.length||names.some((name:string)=>!name||name.length>40)||new Set(names.map((name:string)=>name.toLocaleLowerCase())).size!==names.length){error.value='请保留至少一列，并检查列名是否重复或为空';return}form.value.columns=form.value.columns.map((c:Row)=>({...c,name:c.name.trim()}));busy.value=true;error.value='';try{const d=await api.post('/collections',form.value);await router.push('/collections/'+d.id)}catch(e){error.value=errorText(e)}finally{busy.value=false}}
-async function save(submit=false){if(busy.value||!editable.value)return;busy.value=true;error.value='';try{const d=await api.post<Row>(`/collections/${id.value}/${submit?'submit':'draft'}`,{version:own.value.version,rows:rows.value});detail.value=d;const response=d.responses.find((r:Row)=>String(r.deptId)===String(auth.me?.deptId));rows.value=response?.rows?.length?structuredClone(response.rows):[blank()];dirty.value=false}catch(e){error.value=errorText(e)}finally{busy.value=false}}
+async function save(submit=false){if(busy.value||!editable.value)return;busy.value=true;error.value='';try{const d=await api.post<Row>(`/collections/${id.value}/${submit?'submit':'draft'}`,{version:own.value.version,rows:rows.value});detail.value=d;const response=d.responses.find((r:Row)=>String(r.deptId)===String(auth.me?.deptId));rows.value=response?.rows?.length?structuredClone(response.rows):[blank()];dirty.value=false;markDataUpdated()}catch(e){error.value=errorText(e)}finally{busy.value=false}}
 async function download(){if(busy.value)return;busy.value=true;error.value='';try{if(verifyNeeded.value){await api.post('/auth/totp/verify',{code:totp.value});totp.value='';verifyNeeded.value=false}await api.download('/collections/'+id.value+'/export','部门填报汇总.xlsx')}catch(e){error.value=errorText(e);verifyNeeded.value=e instanceof ApiError&&e.code==='FRESH_TOTP_REQUIRED'}finally{busy.value=false}}
 watch(()=>[route.params.id,route.query.new],()=>{dirty.value=false;void load()})
 onMounted(()=>{void load();api.get('/organization/departments').then(d=>departments.value=listItems(d)).catch(e=>error.value=errorText(e))})
+usePoll(()=>{if(!creating.value&&!loading.value&&!busy.value&&!dirty.value)void load(true)})
 </script>
 
 <template>

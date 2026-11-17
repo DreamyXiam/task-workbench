@@ -6,6 +6,7 @@ import { useAuth } from '../stores/auth'
 import { allowed,date,statuses,listItems,overdue } from '../domain'
 import type { Row } from '../domain'
 import { useLoad,usePoll } from '../composables'
+import { markDataUpdated } from '../data-refresh'
 import PageState from '../components/PageState.vue'
 import StatusBadge from '../components/StatusBadge.vue'
 import ActionDialog from '../components/ActionDialog.vue'
@@ -15,7 +16,8 @@ const auth=useAuth(),route=useRoute(),task=ref<Row|null>(null),tab=ref('work'),{
 const taskActions=['confirm-assign','summarize','accept','reject','deadline','urge','cancel'],subActions=['receive','assign','progress','submit','withdraw','extend','transfer']
 const reports=computed(()=>reportEvents(task.value??{}))
 const requests=computed(()=>[...(task.value?.deadlineRequests??[]).map((r:Row)=>({...r,kind:'延期申请',resource:'deadline-requests'})),...(task.value?.collaborationRequests??[]).map((r:Row)=>({...r,kind:'协办确认',resource:'collaborations'}))])
-function load(quiet=false){if(quiet){api.get('/tasks/'+encodeURIComponent(String(route.params.id))).then(v=>task.value=v).catch(e=>operationError.value=errorText(e));return}run(()=>api.get('/tasks/'+encodeURIComponent(String(route.params.id))),v=>task.value=v)}
+let quietInFlight=false
+function load(quiet=false){if(quiet){if(quietInFlight)return;quietInFlight=true;const requestedId=String(route.params.id);api.get('/tasks/'+encodeURIComponent(requestedId)).then(v=>{if(String(route.params.id)===requestedId){task.value=v;markDataUpdated()}}).catch(e=>operationError.value=errorText(e)).finally(()=>quietInFlight=false);return}run(()=>api.get('/tasks/'+encodeURIComponent(String(route.params.id))),v=>task.value=v)}
 function act(a:string,row:Row,res='tasks'){action.value=a;actionRow.value=a==='progress'?{...row,reportFields:task.value?.keyWorkData?.fields??[]}:row;resource.value=res;dialog.value=true;operationError.value=''}
 async function sendComment(){if(!comment.value.trim()||busy.value)return;busy.value=true;operationError.value='';try{await api.post(`/tasks/${task.value!.id}/comments`,{content:comment.value,mentions:mentions.value});comment.value='';mentions.value=[];load(true)}catch(e){operationError.value=errorText(e)}finally{busy.value=false}}
 async function upload(event:Event){const input=event.target as HTMLInputElement,file=input.files?.[0];if(!file)return;busy.value=true;operationError.value='';try{const data=new FormData();data.append('file',file);data.append('taskId',task.value!.id);if(uploadSub.value)data.append('subTaskId',uploadSub.value);await api.upload(data);load(true)}catch(e){operationError.value=errorText(e)}finally{busy.value=false;input.value=''}}

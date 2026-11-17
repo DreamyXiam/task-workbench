@@ -18,7 +18,7 @@ const cards=[['total','任务总数','当前授权范围'],['inProgress','进行
 function load(){if(!canView.value)return;run(()=>api.get('/stats/overview',{focus:focus.value}),v=>overview.value=v)}
 function selectFocus(value:string){focus.value=value;load()}
 function detailField(task:Row,id:string){const value=summaryValue(task.keyWorkData,id);return value==='—'?'':String(value)}
-onMounted(load);usePoll(load)
+onMounted(load);usePoll(()=>{if(!loading.value)load()})
 </script>
 <template>
 <section class="page-heading"><div><p class="eyebrow">WORKSPACE OVERVIEW</p><h1>{{ leader?'领导工作概览':auth.me?.role==='DEPT_HEAD'?'部门工作台':auth.me?.role==='EMPLOYEE'?'我的工作台':'管理工作台' }}</h1><p class="muted">{{ auth.me?.name }}，您好。{{ roles[auth.me?.role||''] }} · 当前组织范围内的任务与协同。</p></div><router-link v-if="canCreate" to="/tasks/new"><el-button type="primary" size="large">＋ 布置任务</el-button></router-link><el-button v-else-if="canView" @click="load">刷新概览</el-button></section>

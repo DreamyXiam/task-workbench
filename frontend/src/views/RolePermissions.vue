@@ -3,6 +3,8 @@ import { computed,onMounted,ref } from 'vue'
 import { onBeforeRouteLeave } from 'vue-router'
 import { api,ApiError,errorText } from '../api'
 import { roles } from '../domain'
+import { usePoll } from '../composables'
+import { markDataUpdated } from '../data-refresh'
 import type { Row } from '../domain'
 import { ElMessage,ElMessageBox } from 'element-plus'
 import { ShieldCheck,Check,LockKeyhole,RotateCcw } from 'lucide-vue-next'
@@ -14,7 +16,8 @@ const visibleGroups=computed(()=>groups.map(g=>({...g,keys:g.keys.filter(k=>cata
 function dependency(key:string){return disabled.value.includes('TASK_VIEW')&&taskDependencies.includes(key)}
 function effective(key:string){return supported.value.includes(key)&&!disabled.value.includes(key)&&!dependency(key)}
 const count=computed(()=>supported.value.filter(effective).length)
-async function load(){loading.value=true;error.value='';try{const data=await api.get('/admin/role-permissions');catalog.value=data.catalog;rows.value=data.roles;if(!selected.value)selected.value=rows.value[0]?.role??'';setRole(selected.value)}catch(e){error.value=errorText(e)}finally{loading.value=false}}
+let loadSequence=0
+async function load(automatic=false){const current=++loadSequence;loading.value=true;error.value='';try{const data=await api.get('/admin/role-permissions');if(current!==loadSequence||automatic&&(dirty.value||busy.value||needsTotp.value))return;catalog.value=data.catalog;rows.value=data.roles;if(!selected.value)selected.value=rows.value[0]?.role??'';setRole(selected.value);markDataUpdated()}catch(e){if(current===loadSequence&&!(automatic&&dirty.value))error.value=errorText(e)}finally{if(current===loadSequence)loading.value=false}}
 function setRole(role:string){selected.value=role;disabled.value=[...(rows.value.find(r=>r.role===role)?.disabled??[])];needsTotp.value=false;code.value='';error.value=''}
 async function discard(){if(!dirty.value)return true;try{await ElMessageBox.confirm('切换后将放弃尚未保存的权限调整。','放弃本次调整？',{confirmButtonText:'放弃调整',cancelButtonText:'继续编辑',type:'warning'});return true}catch{return false}}
 async function choose(role:string){if(role===selected.value)return;if(await discard())setRole(role)}
@@ -22,7 +25,7 @@ function toggle(key:string,value:unknown){if(!supported.value.includes(key)||dep
 async function save(){if(!row.value||busy.value||!dirty.value)return;try{await ElMessageBox.confirm(`将保存“${roles[selected.value]||selected.value}”的权限调整，当前生效 ${count.value} 项。该角色相关用户需要重新登录。`,'确认权限变更',{confirmButtonText:'保存权限',cancelButtonText:'继续编辑',type:'warning'})}catch{return}busy.value=true;error.value='';try{await api.put(`/admin/role-permissions/${selected.value}`,{version:row.value.version,disabled:disabled.value});ElMessage.success('权限已保存，相关用户需重新登录');await load()}catch(e){error.value=errorText(e);needsTotp.value=e instanceof ApiError&&e.code==='FRESH_TOTP_REQUIRED'}finally{busy.value=false}}
 async function verify(){if(!/^\d{6}$/.test(code.value)){error.value='请输入六位动态验证码';return}busy.value=true;try{await api.post('/auth/totp/verify',{code:code.value});code.value='';needsTotp.value=false;error.value='';ElMessage.success('验证成功，请保存权限')}catch(e){error.value=errorText(e)}finally{busy.value=false}}
 onBeforeRouteLeave(discard)
-onMounted(load)
+onMounted(load);usePoll(()=>{if(!loading.value&&!busy.value&&!dirty.value&&!needsTotp.value)void load(true)})
 </script>
 <template>
 <section class="page-heading"><div><p class="eyebrow">ACCESS CONTROL</p><h1>角色权限配置</h1><p class="muted">按职责开放功能，组织与业务范围随岗位生效。</p></div><span class="scope-chip"><ShieldCheck :size="14"/>仅全局管理员可配置</span></section>

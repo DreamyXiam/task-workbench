@@ -59,6 +59,7 @@ h2 {font-size:16px;font-weight:650}
 .sidebar nav>a.active {background:var(--surface-muted);color:var(--text);font-weight:650}
 .nav-icon {flex-shrink:0;stroke-width:1.8}
 .sidebar-foot {background:var(--surface);border-color:var(--line);color:var(--muted)}
+.data-refresh-time {font-variant-numeric:tabular-nums}
 .sidebar-foot small {color:var(--muted)}
 @media(min-width:768px) {
   .sidebar-collapsed .sidebar {width:68px;padding-inline:10px}

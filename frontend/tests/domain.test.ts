@@ -1,6 +1,7 @@
 import { describe, expect, it, beforeEach } from 'vitest'
 import { allowed, validateAssignment, kpiDisplayScore, canReadKpiScores, reworkDepartmentOptions, overdue } from '../src/domain'
 import { ApiError, api, transport, resetSessionBoundary, sessionEpoch, onSessionExpired } from '../src/api'
+import { lastDataUpdatedAt,markDataUpdated } from '../src/data-refresh'
 import { createPinia, setActivePinia } from 'pinia'
 import { useAuth } from '../src/stores/auth'
 const envelope = (data: unknown) => ({ data: { code:'OK', data, message:'', traceId:'t1' }, status:200, statusText:'OK', headers:{}, config: {} as any })
@@ -18,6 +19,20 @@ describe('authorization display policy', () => {
   it('requires one host, zero to two distinct collaborators excluding host', () => { expect(validateAssignment('',[])).toBeTruthy(); expect(validateAssignment('a',['b','c','d'])).toBeTruthy(); expect(validateAssignment('a',['a'])).toBeTruthy(); expect(validateAssignment('a',['b','b'])).toBeTruthy(); expect(validateAssignment('a',['b','c'])).toBe('') })
 })
 describe('session boundary and transport', () => {
+  it('shows the time of successful business data and clears it when the session changes', async () => {
+    transport.defaults.adapter=config=>Promise.resolve({...envelope({items:[]}),config})
+    expect(lastDataUpdatedAt.value).toBeNull()
+    await api.get('/tasks')
+    expect(lastDataUpdatedAt.value).toBeNull()
+    markDataUpdated()
+    const updated=lastDataUpdatedAt.value
+    expect(updated).toBeTypeOf('number')
+    transport.defaults.adapter=config=>Promise.resolve({...config,status:403,data:{code:'FORBIDDEN',message:'无权访问'}} as any)
+    await expect(api.get('/tasks')).rejects.toMatchObject({status:403})
+    expect(lastDataUpdatedAt.value).toBe(updated)
+    resetSessionBoundary()
+    expect(lastDataUpdatedAt.value).toBeNull()
+  })
   it('does not let an old CSRF request clear the new session request', async () => {
     const pending: Array<(value:any)=>void> = []
     let csrfCalls = 0
