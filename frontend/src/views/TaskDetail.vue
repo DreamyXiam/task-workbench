@@ -42,13 +42,13 @@ onMounted(()=>{load();api.get('/organization/users').then(v=>users.value=listIte
 
 <style scoped>
 .detail-hero{display:block}.hero-summary{min-width:0}.department-execution{min-width:0;margin-top:14px;font-size:12px}.department-execution .panel-heading{margin-bottom:12px}.department-execution .subtask-card{display:flex;align-items:center;flex-wrap:wrap;gap:6px 12px;background:transparent;border:0;border-radius:0;padding:0;margin:8px 0;font-size:12px}.department-execution .panel-heading{display:none}.department-execution .row-between{display:contents}.department-execution .row-between>div{display:flex;align-items:center;gap:6px}.department-execution .muted{font-size:12px;margin:0}.department-execution .dept-role{font-size:12px;padding:0;background:transparent}.department-execution .subtask-actions{display:flex;gap:6px;margin:0}.department-execution .pre-wrap{flex-basis:100%;font-size:12px;margin:0}.detail-layout{grid-template-columns:minmax(0,1fr) 340px;align-items:start;gap:20px}.detail-sidebar{display:grid;gap:20px;min-width:0}.detail-sidebar .comments-panel{position:static}.detail-main{min-width:0;scroll-margin-top:88px}.department-execution .subtask-actions{flex-wrap:wrap}.detail-hero{margin-bottom:20px}.progress-records{border-top:1px solid var(--line);padding-top:20px;margin-top:24px;scroll-margin-top:88px}@media(max-width:1100px){.detail-hero{grid-template-columns:minmax(0,1fr)}.department-execution{border:0;padding:0}.detail-layout{grid-template-columns:minmax(0,1fr)}.detail-sidebar{grid-template-columns:minmax(0,1fr)}}@media(max-width:767px){.detail-sidebar{grid-template-columns:minmax(0,1fr)}.department-execution{margin-top:12px;padding:0}.department-execution .panel-heading{flex-wrap:wrap;gap:6px}.department-execution .subtask-card{padding:0}}
-.detail-hero .detail-meta span{font-size:14px;line-height:1.7}
-.department-execution .subtask-card{font-size:14px;line-height:1.65}
-.department-execution .muted,.department-execution .dept-role{font-size:13px}
-.department-execution .pre-wrap{font-size:14px}
-.detail-hero :deep(.status){font-size:12px}
-.detail-main :deep(.el-tabs__item){font-size:14px}
-.detail-main .task-content,.progress-records .pre-wrap{font-size:15px;line-height:1.8}
-.progress-records :deep(.el-timeline-item__content){font-size:15px;line-height:1.7}
-.progress-records :deep(.el-timeline-item__timestamp){font-size:13px}
+.detail-hero .detail-meta span{font-size:16px;line-height:1.7}
+.department-execution .subtask-card{font-size:16px;line-height:1.65}
+.department-execution .muted,.department-execution .dept-role{font-size:15px}
+.department-execution .pre-wrap{font-size:16px}
+.detail-hero :deep(.status){font-size:14px}
+.detail-main :deep(.el-tabs__item){font-size:16px}
+.detail-main .task-content,.progress-records .pre-wrap{font-size:17px;line-height:1.8}
+.progress-records :deep(.el-timeline-item__content){font-size:17px;line-height:1.7}
+.progress-records :deep(.el-timeline-item__timestamp){font-size:15px}
 </style>
