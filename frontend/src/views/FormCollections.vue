@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed,onMounted,ref,watch } from 'vue'
+import { computed,onMounted,onBeforeUnmount,ref,watch } from 'vue'
 import { useRoute,useRouter,onBeforeRouteLeave,onBeforeRouteUpdate } from 'vue-router'
 import { ArrowUpRight,Building2,CalendarDays,UsersRound } from 'lucide-vue-next'
 import { api,ApiError,errorText } from '../api'
@@ -38,6 +38,7 @@ watch(()=>form.value.companyId,()=>{form.value.departmentIds=[]})
 function search(){appliedKeyword.value=keyword.value.trim().toLocaleLowerCase()}
 function reset(){keyword.value='';statusFilter.value='';search()}
 let request=0
+onBeforeUnmount(()=>{request++})
 async function load(automatic=false){if(dirty.value&&(automatic||!window.confirm('当前修改尚未保存，是否重新加载？')))return;const run=++request;loading.value=true;error.value='';try{if(id.value){const d=await api.get<Row>('/collections/'+id.value);if(run!==request||automatic&&dirty.value)return;if(detail.value?.id!==d.id)openResponses.value=d.responses.filter((r:Row)=>r.status==='SUBMITTED').map((r:Row)=>String(r.id));detail.value=d;const response=d.responses.find((r:Row)=>String(r.deptId)===String(auth.me?.deptId));rows.value=response?.rows?.length?structuredClone(response.rows):[blank()]}else{const d=await api.get<Row[]>('/collections');if(run!==request||automatic&&dirty.value)return;items.value=d;detail.value=null}dirty.value=false;markDataUpdated()}catch(e){if(run===request&&!(automatic&&dirty.value))error.value=errorText(e)}finally{if(run===request)loading.value=false}}
 async function create(){if(busy.value)return;if(!form.value.title.trim()||!form.value.companyId||!form.value.deadline||!form.value.departmentIds.length){error.value='请填写标题、公司、截止时间并选择接收部门';return}const names=form.value.columns.map((c:Row)=>c.name.trim());if(!names.length||names.some((name:string)=>!name||name.length>40)||new Set(names.map((name:string)=>name.toLocaleLowerCase())).size!==names.length){error.value='请保留至少一列，并检查列名是否重复或为空';return}form.value.columns=form.value.columns.map((c:Row)=>({...c,name:c.name.trim()}));busy.value=true;error.value='';try{const d=await api.post('/collections',form.value);await router.push('/collections/'+d.id)}catch(e){error.value=errorText(e)}finally{busy.value=false}}
 async function save(submit=false){if(busy.value||!editable.value)return;busy.value=true;error.value='';try{const d=await api.post<Row>(`/collections/${id.value}/${submit?'submit':'draft'}`,{version:own.value.version,rows:rows.value});detail.value=d;const response=d.responses.find((r:Row)=>String(r.deptId)===String(auth.me?.deptId));rows.value=response?.rows?.length?structuredClone(response.rows):[blank()];dirty.value=false;markDataUpdated()}catch(e){error.value=errorText(e)}finally{busy.value=false}}

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed,onMounted,ref } from 'vue'
+import { computed,onMounted,onBeforeUnmount,ref } from 'vue'
 import { onBeforeRouteLeave } from 'vue-router'
 import { api,ApiError,errorText } from '../api'
 import { roles } from '../domain'
@@ -17,6 +17,7 @@ function dependency(key:string){return disabled.value.includes('TASK_VIEW')&&tas
 function effective(key:string){return supported.value.includes(key)&&!disabled.value.includes(key)&&!dependency(key)}
 const count=computed(()=>supported.value.filter(effective).length)
 let loadSequence=0
+onBeforeUnmount(()=>{loadSequence++})
 async function load(automatic=false){const current=++loadSequence;loading.value=true;error.value='';try{const data=await api.get('/admin/role-permissions');if(current!==loadSequence||automatic&&(dirty.value||busy.value||needsTotp.value))return;catalog.value=data.catalog;rows.value=data.roles;if(!selected.value)selected.value=rows.value[0]?.role??'';setRole(selected.value);markDataUpdated()}catch(e){if(current===loadSequence&&!(automatic&&dirty.value))error.value=errorText(e)}finally{if(current===loadSequence)loading.value=false}}
 function setRole(role:string){selected.value=role;disabled.value=[...(rows.value.find(r=>r.role===role)?.disabled??[])];needsTotp.value=false;code.value='';error.value=''}
 async function discard(){if(!dirty.value)return true;try{await ElMessageBox.confirm('切换后将放弃尚未保存的权限调整。','放弃本次调整？',{confirmButtonText:'放弃调整',cancelButtonText:'继续编辑',type:'warning'});return true}catch{return false}}

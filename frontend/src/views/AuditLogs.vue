@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted,ref } from 'vue'
+import { onMounted,onBeforeUnmount,ref } from 'vue'
 import { api,ApiError,errorText } from '../api'
 import { date,listItems } from '../domain'
 import type { Row } from '../domain'
@@ -10,6 +10,7 @@ import { markDataUpdated } from '../data-refresh'
 import { Search,Download,ScrollText,ArrowUpRight } from 'lucide-vue-next'
 const auth=useAuth(),items=ref<Row[]>([]),actions=ref<Row[]>([]),total=ref(0),page=ref(1),loading=ref(false),error=ref(''),operationError=ref(''),keyword=ref(''),action=ref(''),range=ref<string[]>([]),format=ref('xlsx'),busy=ref(false),selected=ref<Row|null>(null),detailOpen=ref(false),verifyOpen=ref(false),code=ref(''),verifyError=ref('')
 let sequence=0
+onBeforeUnmount(()=>{sequence++})
 const filters=ref<Record<string,unknown>>({})
 async function load(){const n=++sequence;loading.value=true;error.value='';try{const data=await api.get('/audit',{...filters.value,page:page.value,pageSize:20});if(n!==sequence)return;items.value=listItems(data);total.value=data.total??items.value.length;actions.value=data.actions??[];markDataUpdated()}catch(e){if(n===sequence)error.value=errorText(e)}finally{if(n===sequence)loading.value=false}}
 function search(){filters.value={keyword:keyword.value.trim()||undefined,action:action.value||undefined,from:range.value?.[0],to:range.value?.[1]};page.value=1;load()}
