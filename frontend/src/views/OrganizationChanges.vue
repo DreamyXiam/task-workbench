@@ -5,7 +5,7 @@ import { api,errorText } from '../api'
 import { allowed,date,listItems,roles,statuses } from '../domain'
 import type { Row } from '../domain'
 import { useAuth } from '../stores/auth'
-import { useLoad } from '../composables'
+import { useLoad,usePoll } from '../composables'
 import PageState from '../components/PageState.vue'
 import { validateTimeWindow,validateHandoverSelection } from '../workflowForms'
 
@@ -16,7 +16,7 @@ const matches=(r:Row)=>!query.value.trim()||[r.userName,r.companyName,r.deptName
 const filteredAppointments=computed(()=>appointments.value.filter(matches)),filteredDelegations=computed(()=>delegations.value.filter(matches))
 function appointmentState(a:Row){if(!a.enabled)return '已停用';if(a.employmentStatus==='LEFT')return '已离职';if(a.employmentStatus==='ON_LEAVE')return '休假中';if(a.validUntil&&new Date(a.validUntil).getTime()<=Date.now())return '已到期';if(a.validFrom&&new Date(a.validFrom).getTime()>Date.now())return '待生效';return '生效中'}
 const permissions:Record<string,string>={receive:'接收',assign:'分派',progress:'进度',submit:'提交成果',withdraw:'撤回成果',extend:'申请延期',transfer:'转交',summarize:'汇总',comment:'留言',upload:'上传附件'}
-function load(){operationError.value='';run(async()=>{const names=isAdmin.value?['appointments']:['delegations',...(canHandover.value?['handover-tasks','handovers']:[])];const results=await Promise.all(names.map(name=>api.get('/organization/'+name,name==='appointments'&&userId.value?{userId:userId.value}:undefined)));return Object.fromEntries(names.map((name,i)=>[name,results[i]]))},result=>{if(result.appointments)appointments.value=listItems(result.appointments);if(result.delegations){delegationPolicy.value=result.delegations;delegations.value=listItems(result.delegations)};if(result['handover-tasks'])tasks.value=listItems(result['handover-tasks']);if(result.handovers)history.value=listItems(result.handovers);selected.value=[];owners.value={}})}
+function load(automatic=false){if(automatic&&(busy.value||drawer.value||selected.value.length||transferReason.value))return;operationError.value='';run(async()=>{const names=isAdmin.value?['appointments']:['delegations',...(canHandover.value?['handover-tasks','handovers']:[])];const results=await Promise.all(names.map(name=>api.get('/organization/'+name,name==='appointments'&&userId.value?{userId:userId.value}:undefined)));return Object.fromEntries(names.map((name,i)=>[name,results[i]]))},result=>{if(automatic&&(busy.value||drawer.value||selected.value.length||transferReason.value))return false;if(result.appointments)appointments.value=listItems(result.appointments);if(result.delegations){delegationPolicy.value=result.delegations;delegations.value=listItems(result.delegations)};if(result['handover-tasks'])tasks.value=listItems(result['handover-tasks']);if(result.handovers)history.value=listItems(result.handovers);selected.value=[];owners.value={}})}
 async function loadUsers(){try{users.value=listItems(await api.get('/organization/users'))}catch(e){operationError.value=errorText(e)}}
 function openDelegate(){form.value={delegateUserId:'',permissions:['receive','progress','submit'],validFrom:new Date().toISOString(),validUntil:'',reason:''};formError.value='';drawer.value='delegate'}
 function openAppointment(row:Row){form.value={...row,reason:''};formError.value='';drawer.value='appointment'}
@@ -26,7 +26,7 @@ async function revoke(){if(!form.value.reason?.trim()){formError.value='请填�
 async function leaveDelegation(){busy.value=true;try{await api.post('/organization/delegations/leave');auth.clear();await auth.refresh();load();ElMessage.success('已恢复本人岗位上下文')}catch(e){operationError.value=errorText(e)}finally{busy.value=false}}
 async function selectionChange(rows:Row[]){selected.value=rows;for(const row of rows){const key=String(row.deptId);if(!targetUsers.value[key])try{targetUsers.value[key]=listItems(await api.get('/organization/users',{deptId:row.deptId})).filter(u=>u.enabled!==false)}catch(e){operationError.value=errorText(e)}}}
 async function handover(){const items=selected.value.map(s=>({subTaskId:s.subTaskId??s.id,userId:owners.value[String(s.subTaskId??s.id)]??'',version:s.version}));const invalid=validateHandoverSelection(items,transferReason.value);if(invalid){operationError.value=invalid;return}busy.value=true;operationError.value='';try{await api.post('/organization/handovers',{items,reason:transferReason.value});transferReason.value='';load();ElMessage.success('交接已完成，原责任与历史保留')}catch(e){operationError.value=errorText(e)}finally{busy.value=false}}
-onMounted(()=>{load();loadUsers()})
+onMounted(()=>{load();loadUsers()});usePoll(()=>{if(!loading.value&&!busy.value&&!drawer.value&&!selected.value.length&&!transferReason.value)load(true)})
 </script>
 <template>
 <section class="page-heading"><div><p class="eyebrow">APPOINTMENTS & HANDOVER</p><h1>岗位、代理与交接</h1><p class="muted">限定岗位和有效窗口，交接记录保留原责任人与办理原因。</p></div><el-button :loading="loading" @click="load">刷新当前状态</el-button></section>

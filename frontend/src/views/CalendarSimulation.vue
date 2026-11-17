@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { computed,onMounted,ref } from 'vue'
+import { computed,onMounted,onBeforeUnmount,ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { api,errorText } from '../api'
 import { allowed,date,display,listItems } from '../domain'
 import type { Row } from '../domain'
 import { useAuth } from '../stores/auth'
-import { useLoad } from '../composables'
+import { useLoad,usePoll } from '../composables'
+import { markDataUpdated } from '../data-refresh'
 import PageState from '../components/PageState.vue'
 import { parseCalendarDates,validateCandidateWeights,validateTimeWindow,validateWorkingHours,previousShanghaiMonth } from '../workflowForms'
 
@@ -15,6 +16,9 @@ const companies=computed(()=>{const map=new Map<string,Row>();if(auth.me?.compan
 const companyDepartments=computed(()=>departments.value.filter(d=>String(d.companyId)===String(companyId.value)))
 const names=['按时完成率','逾期率','退回率','响应时长','执行时长']
 function load(){if(companyId.value===''){error.value='请选择需要查看的公司';return}result.value=null;classification.value=null;taskId.value='';run(()=>api.get('/kpi/calendar-policy',{companyId:companyId.value}),v=>{policy.value=v;calendarId.value=0;templateId.value=0})}
+let active=true
+onBeforeUnmount(()=>{active=false})
+async function refreshPolicy(){if(companyId.value==='')return;const company=companyId.value;try{const fresh=await api.get('/kpi/calendar-policy',{companyId:company});if(active&&company===companyId.value){policy.value=fresh;markDataUpdated()}}catch{/* Keep the current simulation and selection when a background refresh fails. */}}
 function open(kind:string){formError.value='';drawer.value=kind;form.value={name:'',reason:'',expectedVersion:Math.max(0,...(policy.value.calendars??[]).map((c:Row)=>Number(c.version)||0)),mode:'WORKING_TIME',weekendDays:[0,6],dayStart:'09:00',dayEnd:'18:00',holidays:'',workingDates:'',leaves:[],weights:[30,25,20,10,15],complexityWeights:{SIMPLE:1,NORMAL:1,COMPLEX:1}}}
 async function save(){if(busy.value)return;formError.value='';const f=form.value;if(!f.name?.trim()||!f.reason?.trim()){formError.value='请填写版本名称和变更原因';return}busy.value=true;try{let body:Row={companyId:companyId.value,name:f.name.trim(),reason:f.reason.trim()};if(drawer.value==='calendar'){const hours=validateWorkingHours(f.dayStart,f.dayEnd);if(hours)throw new Error(hours);const holidays=parseCalendarDates(f.holidays),workingDates=parseCalendarDates(f.workingDates);if(holidays.some(d=>workingDates.includes(d)))throw new Error('同一日期不能同时为节假日和补班日');for(const leave of f.leaves){const invalid=validateTimeWindow(leave.from,leave.to);if(invalid||!leave.to||!leave.deptId)throw new Error(invalid||'请补全请假记录的部门及结束时间')}body={...body,expectedVersion:f.expectedVersion,calendar:{mode:f.mode,weekendDays:f.weekendDays,dayStart:f.dayStart,dayEnd:f.dayEnd,holidays,workingDates,leaves:f.leaves.map((l:Row)=>({deptId:l.deptId,...(l.userId?{userId:l.userId}:{}),from:l.from,to:l.to}))}};await api.post('/kpi/calendar-versions',body)}else{const invalid=validateCandidateWeights(f.weights);if(invalid)throw new Error(invalid);body={...body,weights:f.weights,complexityWeights:f.complexityWeights,simulation:true};await api.post('/kpi/simulation-templates',body)}drawer.value='';ElMessage.success('候选版本已保存');load()}catch(e){formError.value=errorText(e)}finally{busy.value=false}}
 async function simulate(){if(busy.value)return;if(!reason.value.trim()||!period.value){operationError.value='请选择月份并填写模拟原因';return}busy.value=true;operationError.value='';try{result.value=await api.post('/kpi/calendar-simulations',{companyId:companyId.value,period:period.value,calendarVersionId:calendarId.value,templateId:templateId.value,simulation:true,reason:reason.value,...(deptId.value?{deptId:deptId.value}:{})});const updated=await api.get('/kpi/calendar-policy',{companyId:companyId.value});policy.value=updated;ElMessage.success('模拟完成，结果已冻结保存')}catch(e){operationError.value=errorText(e)}finally{busy.value=false}}
@@ -24,6 +28,7 @@ async function loadClassification(){classification.value=null;classificationReas
 async function classify(){if(!classification.value||!allowed(classification.value,'classify'))return;if(!classificationReason.value.trim()){operationError.value='请填写分类调整原因';return}busy.value=true;try{classification.value=await api.post(`/tasks/${taskId.value}/classification`,{complexity:classification.value.complexity,category:classification.value.category,expectedVersion:classification.value.version??0,reason:classificationReason.value});classificationReason.value='';ElMessage.success('分类版本已保存，不追溯修改既有分数')}catch(e){operationError.value=errorText(e)}finally{busy.value=false}}
 function score(value:unknown){return value==null?'N/A':display(value)}
 onMounted(async()=>{try{const [d,u]=await Promise.all([api.get('/organization/departments'),api.get('/organization/users')]);departments.value=listItems(d);users.value=listItems(u);if(companyId.value===''&&companies.value.length)companyId.value=companies.value[0].id;load()}catch(e){error.value=errorText(e)}})
+usePoll(()=>{if(!loading.value&&!busy.value&&!drawer.value)void refreshPolicy()})
 </script>
 <template>
 <section class="page-heading"><div><p class="eyebrow">CALENDAR & COMPLEXITY LAB</p><h1>日历与复杂度模拟</h1><p class="muted">以同一任务快照对比候选口径，保留可复算的分析记录。</p></div><el-button @click="load">刷新版本</el-button></section>

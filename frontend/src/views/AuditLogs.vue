@@ -1,21 +1,24 @@
 <script setup lang="ts">
-import { onMounted,ref } from 'vue'
+import { onMounted,onBeforeUnmount,ref } from 'vue'
 import { api,ApiError,errorText } from '../api'
 import { date,listItems } from '../domain'
 import type { Row } from '../domain'
 import { useAuth } from '../stores/auth'
 import PageState from '../components/PageState.vue'
+import { usePoll } from '../composables'
+import { markDataUpdated } from '../data-refresh'
 import { Search,Download,ScrollText,ArrowUpRight } from 'lucide-vue-next'
 const auth=useAuth(),items=ref<Row[]>([]),actions=ref<Row[]>([]),total=ref(0),page=ref(1),loading=ref(false),error=ref(''),operationError=ref(''),keyword=ref(''),action=ref(''),range=ref<string[]>([]),format=ref('xlsx'),busy=ref(false),selected=ref<Row|null>(null),detailOpen=ref(false),verifyOpen=ref(false),code=ref(''),verifyError=ref('')
 let sequence=0
+onBeforeUnmount(()=>{sequence++})
 const filters=ref<Record<string,unknown>>({})
-async function load(){const n=++sequence;loading.value=true;error.value='';try{const data=await api.get('/audit',{...filters.value,page:page.value,pageSize:20});if(n!==sequence)return;items.value=listItems(data);total.value=data.total??items.value.length;actions.value=data.actions??[]}catch(e){if(n===sequence)error.value=errorText(e)}finally{if(n===sequence)loading.value=false}}
+async function load(){const n=++sequence;loading.value=true;error.value='';try{const data=await api.get('/audit',{...filters.value,page:page.value,pageSize:20});if(n!==sequence)return;items.value=listItems(data);total.value=data.total??items.value.length;actions.value=data.actions??[];markDataUpdated()}catch(e){if(n===sequence)error.value=errorText(e)}finally{if(n===sequence)loading.value=false}}
 function search(){filters.value={keyword:keyword.value.trim()||undefined,action:action.value||undefined,from:range.value?.[0],to:range.value?.[1]};page.value=1;load()}
 function reset(){keyword.value='';action.value='';range.value=[];search()}
 function details(row:Row){selected.value=row;detailOpen.value=true}
 async function download(){busy.value=true;operationError.value='';try{const params=new URLSearchParams({format:format.value});for(const [k,v] of Object.entries(filters.value))if(v!=null)params.set(k,String(v));await api.download('/audit/export?'+params,`操作日志.${format.value}`);verifyOpen.value=false}catch(e){if(e instanceof ApiError&&e.code==='FRESH_TOTP_REQUIRED'){verifyOpen.value=true;verifyError.value=''}else operationError.value=errorText(e)}finally{busy.value=false}}
 async function verify(){if(!/^\d{6}$/.test(code.value)){verifyError.value='请输入六位动态验证码';return}busy.value=true;verifyError.value='';try{await api.post('/auth/totp/verify',{code:code.value});code.value='';await download()}catch(e){verifyError.value=errorText(e)}finally{busy.value=false}}
-onMounted(load)
+onMounted(load);usePoll(()=>{if(!loading.value&&!busy.value&&!detailOpen.value&&!verifyOpen.value)void load()})
 </script>
 <template>
 <section class="page-heading"><div><p class="eyebrow">ACTIVITY & AUDIT</p><h1>操作日志</h1><p class="muted">查找组织变更和任务操作，按追踪号核对办理记录。</p></div><div class="action-strip"><el-select v-model="format" aria-label="日志导出格式" style="width:110px"><el-option label="Excel" value="xlsx"/><el-option label="CSV" value="csv"/></el-select><el-button :loading="busy" :disabled="loading||!!error" @click="download"><Download :size="15"/>导出筛选结果</el-button></div></section>
