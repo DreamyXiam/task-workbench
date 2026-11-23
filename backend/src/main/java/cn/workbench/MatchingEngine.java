@@ -84,7 +84,7 @@ public final class MatchingEngine {
         String version=ENGINE_VERSION+"-"+hash(canonical(snapshots)).substring(0,16);
         return freeze(map("suggestions",suggestions,"ruleVersion",version,"engineVersion",ENGINE_VERSION,
                 "manualFallback",host==null,"tiedHostDeptIds",ties,"excludedHits",excluded,
-                "message",host==null?"未生成主办建议，请人工选择部门。":"请人工确认唯一主办部门和零至两个协办部门。",
+                "message",host==null?"未生成主办建议，请人工选择部门。":"请人工确认唯一主办部门及协办部门。",
                 "inputHash",inputHash(companyId,title,content),"normalizedTitle",normalizedTitle,
                 "normalizedContent",normalizedContent,"ruleSnapshot",snapshots));
     }

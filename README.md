@@ -98,7 +98,7 @@ Follow [deployment and rollback](docs/operations/deployment.md) to configure Lin
 | Evaluators | [Requirements](docs/requirements/v15-tasks.md) · [Implementation evidence](docs/implementation/) · [Release checklist](docs/release/v1.5-release-checklist.md) |
 | Architecture and security | [ADR register](docs/adr/README.md) · [Security baseline](docs/security/security-baseline.md) · [Vulnerability reporting](SECURITY.md) |
 
-The preserved business baseline is one host department, 0–2 collaborators and explicit cross-company agreement; the five original KPI weights are 30/25/20/10/15, objections last 7 days, and personal KPI is disabled by default. New formulas and policies remain simulations until approved.
+The current business baseline is one host department, any number of distinct collaborators and explicit cross-company agreement; the five original KPI weights are 30/25/20/10/15, objections last 7 days, and personal KPI is disabled by default. New formulas and policies remain simulations until approved.
 
 ## License and contributing
 

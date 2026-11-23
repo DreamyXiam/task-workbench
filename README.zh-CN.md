@@ -98,7 +98,7 @@ Set-Location ..
 | 评估与验收 | [需求](docs/requirements/v15-tasks.md) · [实现记录](docs/implementation/) · [发布清单](docs/release/v1.5-release-checklist.md) |
 | 架构与安全 | [ADR 登记](docs/adr/README.md) · [安全基线](docs/security/security-baseline.md) · [安全报告](SECURITY.md) |
 
-现有业务基线：一个主办部门、0–2 个协办部门，跨公司协办须明确同意；原有五项 KPI 权重为 30/25/20/10/15，异议期为 7 天，个人 KPI 默认关闭。新公式和策略在批准前作为模拟方案。
+现有业务基线：一个主办部门、按需选择任意数量的不同协办部门，跨公司协办须明确同意；原有五项 KPI 权重为 30/25/20/10/15，异议期为 7 天，个人 KPI 默认关闭。新公式和策略在批准前作为模拟方案。
 
 ## 开源与参与
 
