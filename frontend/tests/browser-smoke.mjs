@@ -342,6 +342,7 @@ try{
  await page.reload()
  await page.locator('.app-layout').waitFor()
  await page.goto('http://127.0.0.1:5173/#/admin/users')
+ await page.locator('.route-page[data-route-path="/admin/users"]:not([class*="enter-active"]):not([class*="leave-active"])').waitFor()
  await page.getByRole('button',{name:'＋ 新增用户与岗位'}).click()
  const newUser=page.getByRole('dialog',{name:'新增用户与岗位'})
  await newUser.locator('.el-form-item').filter({hasText:'工号'}).locator('input').fill('global-fixture')
