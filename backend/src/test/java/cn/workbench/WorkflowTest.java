@@ -9,6 +9,15 @@ import org.junit.jupiter.api.*;import org.springframework.boot.test.context.Spri
  Map<String,Object> sub(long task,int dept){return records.children(task,"SUB_TASK").stream().filter(s->Jsons.integer(s.get("deptId"))==dept).findFirst().orElseThrow();}
  void receive(Policy.Actor a,long task,int dept){tx(()->tasks.subAction(a,id(sub(task,dept)),"receive",Map.of()));}
  void submit(Policy.Actor a,long task,int dept){var s=sub(task,dept);tx(()->tasks.subAction(a,id(s),"submit",map("summary","成果版本","version",s.get("version"))));}
+ @Test @org.springframework.transaction.annotation.Transactional void taskCreationAcceptsMoreThanTwoCollaboratingDepartments(){
+  var extra=records.create("DEPARTMENT",1,null,null,null,"ACTIVE",map("name","新增协办部门","enabled",true));
+  var collaborators=List.of(4,Jsons.integer(extra.get("id")),5);
+  var task=tasks.create(leader,map("title","多协办部门任务","content","验证三个协办部门","companyId",1,"hostDeptId",3,"collaboratorDeptIds",collaborators,"deadline",Instant.now().plusSeconds(86400).toString()));
+  long taskId=id(task);
+  assertThat((List<?>)task.get("collaboratorDeptIds")).hasSize(3);
+  assertThat(records.children(taskId,"SUB_TASK")).hasSize(3);
+  assertThat(records.children(taskId,"COLLABORATION_REQUEST")).hasSize(1);
+ }
  @Test void collectionColumnsAreFixedAtPublishAndDriveDraftSubmitAndExport(){
   var columns=List.of(map("id","progress","name","推进状态"),map("id","custom_0123456789abcdef0123456789abcdef","name","领导关注点"));
   var created=tx(()->forms.create(leader,map("title","自定义列","companyId",1,"departmentIds",List.of(3),"deadline",Instant.now().plusSeconds(86400).toString(),"columns",columns)));long formId=id(created);
@@ -141,6 +150,17 @@ import org.junit.jupiter.api.*;import org.springframework.boot.test.context.Spri
   assertThat(records.get(requestId).get("status")).isEqualTo("PENDING");assertThat(records.children(taskId,"SUB_TASK")).hasSize(2);
   tx(()->tasks.taskAction(leader,taskId,"confirm-assign",Map.of()));tx(()->tasks.collaboration(other,requestId,"accept",Map.of()));
   assertThat(records.children(taskId,"SUB_TASK")).hasSize(3);assertThat(policy.task(other,taskId)).isNotNull();
+ }
+ @Test void acceptedCrossCompanyCollaboratorSeesSharedBriefingButNotDepartmentFiles(){
+  var task=create();long taskId=id(task);
+  var shared=tx(()->records.create("ATTACHMENT",1,null,taskId,leader.uid(),"CLEAN",map("uploaderId",leader.uid(),"storageKey","synthetic-shared","originalName","briefing.txt","scanStatus","CLEAN","mimeType","text/plain","sizeBytes",1,"sha256","synthetic-shared")));
+  var privateFile=tx(()->records.create("ATTACHMENT",1,3,taskId,host.uid(),"CLEAN",map("uploaderId",host.uid(),"storageKey","synthetic-private","originalName","private.txt","scanStatus","CLEAN","mimeType","text/plain","sizeBytes",1,"sha256","synthetic-private")));
+  assertThatThrownBy(()->tasks.detail(other,taskId)).isInstanceOf(ApiException.class);
+  tx(()->tasks.taskAction(leader,taskId,"confirm-assign",Map.of()));
+  long requestId=id(records.children(taskId,"COLLABORATION_REQUEST").getFirst());
+  tx(()->tasks.collaboration(other,requestId,"accept",Map.of()));
+  var files=(List<Map<String,Object>>)tasks.detail(other,taskId).get("attachments");
+  assertThat(files).extracting(file->id(file)).contains(id(shared)).doesNotContain(id(privateFile));
  }
  @Test void cancelledTaskDoesNotOfferCollaborationActions(){
   var task=create();long taskId=id(task);long requestId=id(records.children(taskId,"COLLABORATION_REQUEST").getFirst());

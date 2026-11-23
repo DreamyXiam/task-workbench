@@ -186,6 +186,21 @@ class MatchingEngineTest {
             assertThat(records.children(Jsons.number(task.get("id")),"MATCHING_FEEDBACK")).hasSize(1);
         }
         @Test @org.springframework.transaction.annotation.Transactional
+        void matchingFeedbackAcceptsAllSuggestedCollaboratorsBeyondTwo(){
+            var fourth=records.create("DEPARTMENT",1,null,null,null,"ACTIVE",Records.map("name","Fourth collaborator","enabled",true));
+            records.create("RULE",1,3,null,2L,"ACTIVE",Records.map("name","Host","ruleVersion",1,"keywords",List.of("report"),"weight",100,"role","HOST"));
+            for(int department:List.of(4,Jsons.integer(fourth.get("id"))))
+                records.create("RULE",1,department,null,2L,"ACTIVE",Records.map("name","Collaborator "+department,"ruleVersion",1,"keywords",List.of("report"),"weight",25,"role","COLLABORATOR"));
+            var result=data(organization.match(Records.map("companyId",1,"title","Report","content","Synthetic requirement"),request("demo.leader","/api/v1/tasks/match")));
+            var stored=records.get(Jsons.number(result.get("matchingResultId")));
+            var suggestions=new ArrayList<>(suggestions(result));
+            suggestions.add(Records.map("role","COLLABORATOR","deptId",5L));
+            stored.put("suggestions",suggestions);records.save(stored);
+            var task=new org.springframework.transaction.support.TransactionTemplate(transactions).execute(status->tasks.create(leader,Records.map("companyId",1,"title","Report","content","Synthetic requirement","hostDeptId",3,"collaboratorDeptIds",List.of(4,Jsons.integer(fourth.get("id")),5),"deadline",java.time.Instant.now().plusSeconds(3600).toString())));
+            var response=data(feedback.submit(Records.map("matchingResultId",result.get("matchingResultId"),"taskId",task.get("id"),"reason","All suggestions accepted"),request("demo.leader","/api/v1/matching/feedback")));
+            assertThat(response).containsEntry("decision","ACCEPTED");
+        }
+        @Test @org.springframework.transaction.annotation.Transactional
         void feedbackRejectsForeignScopeAndMismatchedInput(){
             var result=matchResult();var task=task(3);
             assertThatThrownBy(()->feedback.submit(Records.map("matchingResultId",result.get("matchingResultId"),"taskId",task.get("id"),"reason","Guess"),request("demo.other","/api/v1/matching/feedback"))).isInstanceOf(ApiException.class);

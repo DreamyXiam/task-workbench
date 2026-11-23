@@ -46,7 +46,7 @@ public class MatchingController {
             List<Map<String,Object>> suggestions=maps(matched.get("suggestions"));
             var recommendedHost=suggestions.stream().filter(item->"HOST".equals(item.get("role"))).findFirst();
             List<Long> recommendedCollaborators=suggestions.stream().filter(item->"COLLABORATOR".equals(item.get("role")))
-                    .limit(2).map(item->Jsons.number(item.get("deptId"))).sorted().toList();
+                    .map(item->Jsons.number(item.get("deptId"))).sorted().toList();
             boolean accepted=recommendedHost.isPresent()&&Jsons.number(recommendedHost.get().get("deptId"))==actualHost
                     &&actualCollaborators.equals(recommendedCollaborators);
             var saved=records.create("MATCHING_FEEDBACK",Jsons.integer(locked.get("companyId")),null,taskId,actor.uid(),"RECORDED",

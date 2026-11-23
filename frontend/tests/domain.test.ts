@@ -16,7 +16,7 @@ describe('authorization display policy', () => {
     expect(overdue({status:'ACCEPTED',deadline,everOverdue:true})).toBe(true)
   })
   it('does not infer permission from a role or a missing action list', () => { expect(allowed({role:'ADMIN'}, 'accept')).toBe(false); expect(allowed({allowedActions:['accept']},'cancel')).toBe(false); expect(allowed({allowedActions:['accept']},'accept')).toBe(true) })
-  it('requires one host, zero to two distinct collaborators excluding host', () => { expect(validateAssignment('',[])).toBeTruthy(); expect(validateAssignment('a',['b','c','d'])).toBeTruthy(); expect(validateAssignment('a',['a'])).toBeTruthy(); expect(validateAssignment('a',['b','b'])).toBeTruthy(); expect(validateAssignment('a',['b','c'])).toBe('') })
+  it('requires one host and distinct collaborators excluding host without a fixed count limit', () => { expect(validateAssignment('',[])).toBeTruthy(); expect(validateAssignment('a',['b','c','d'])).toBe(''); expect(validateAssignment('a',['a'])).toBeTruthy(); expect(validateAssignment('a',['b','b'])).toBeTruthy(); expect(validateAssignment('a',['b','c'])).toBe('') })
 })
 describe('session boundary and transport', () => {
   it('shows the time of successful business data and clears it when the session changes', async () => {
